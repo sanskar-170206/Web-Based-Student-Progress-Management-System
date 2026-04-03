@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="UPAY NGO, Nagpur Dashboard — Overview of student performance, attendance, and academic statistics.">
+    <title>Dashboard — UPAY NGO, Nagpur</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<link rel="icon" type="image/png" href="../assets/upay_logo.png">
+</head>
+<body>
+    <div id="main-content">
+        <div id="dashboard-content"><p style="color:var(--text-muted)">Loading...</p></div>
+    </div>
+
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        function pageInit() {
+            if (isStudent()) {
+                renderStudentDashboard();
+            } else {
+                renderAdminDashboard();
+            }
+        }
+
+        function renderStudentDashboard() {
+            const session = getSession();
+            const studentId = session.studentId;
+            const student = getStudentById(studentId);
+            if (!student) { document.getElementById('dashboard-content').innerHTML = '<p>Student data not found.</p>'; return; }
+
+            const marks = getData(KEYS.MARKS).filter(m => m.studentId === studentId);
+            const attendance = getData(KEYS.ATTENDANCE);
+            const allMarks = getData(KEYS.MARKS);
+            const allStudents = getData(KEYS.STUDENTS);
+
+            let totalDays = 0, presentDays = 0;
+            attendance.forEach(a => {
+                const rec = a.records.find(r => r.studentId === studentId);
+                if (rec) { totalDays++; if (rec.status === 'Present') presentDays++; }
+            });
+            const attendancePct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+            const avgPct = marks.length > 0 ? parseFloat((marks.reduce((s, m) => s + m.percentage, 0) / marks.length).toFixed(1)) : 0;
+            const grade = calcGrade(avgPct);
+
+            const rankings = allStudents.map(s => {
+                const sMarks = allMarks.filter(m => m.studentId === s.id);
+                const avg = sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0;
+                return { id: s.id, avg };
+            }).sort((a, b) => b.avg - a.avg);
+            const rank = rankings.findIndex(r => r.id === studentId) + 1;
+
+            const subjectAvgs = {};
+            marks.forEach(m => m.entries.forEach(e => {
+                if (!subjectAvgs[e.subject]) subjectAvgs[e.subject] = [];
+                subjectAvgs[e.subject].push((e.obtained / e.maxMarks) * 100);
+            }));
+            let bestSubject = 'N/A', bestSubjectAvg = 0;
+            Object.entries(subjectAvgs).forEach(([subj, scores]) => {
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                if (avg > bestSubjectAvg) { bestSubjectAvg = avg; bestSubject = subj; }
+            });
+
+            const container = document.getElementById('dashboard-content');
+            container.innerHTML = `
+                <div class="student-welcome card" style="margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                    <div class="report-avatar" style="width:56px;height:56px;font-size:1.2rem">${student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}</div>
+                    <div>
+                        <h1 class="page-title" style="margin-bottom:0">Welcome, ${student.name.split(' ')[0]}! 👋</h1>
+                        <p class="page-subtitle">Class ${student.class}-${student.section} · Roll No: <code>${student.rollNo}</code></p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card purple">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+                        <div class="stat-label">My Average</div>
+                        <div class="stat-value">${avgPct}%</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                        <div class="stat-label">Attendance</div>
+                        <div class="stat-value">${attendancePct}%</div>
+                    </div>
+                    <div class="stat-card amber">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></div>
+                        <div class="stat-label">Class Rank</div>
+                        <div class="stat-value">#${rank}</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                        <div class="stat-label">Best Subject</div>
+                        <div class="stat-value" style="font-size:1.1rem">${bestSubject}</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>My Subject Performance</h3>
+                        <div class="chart-container"><canvas id="studentSubjectChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>My Attendance</h3>
+                        <div class="chart-container"><canvas id="studentAttChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-bottom">
+                    <div class="card">
+                        <h3 class="section-title">📝 My Exam Results</h3>
+                        ${marks.length > 0 ? `
+                        <table class="data-table compact">
+                            <thead><tr><th>Exam</th><th>Total</th><th>Percentage</th><th>Grade</th></tr></thead>
+                            <tbody>
+                                ${marks.map(m => `<tr>
+                                    <td><span class="badge badge-info">${m.exam}</span></td>
+                                    <td><code>${m.total} / ${m.entries.reduce((s, e) => s + e.maxMarks, 0)}</code></td>
+                                    <td><strong>${m.percentage}%</strong></td>
+                                    <td>${gradeBadge(m.grade)}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>` : '<p style="color:var(--text-muted);text-align:center;padding:20px">No exam results yet</p>'}
+                    </div>
+                    <div class="card">
+                        <h3 class="section-title">📊 Performance Summary</h3>
+                        <div class="report-summary-grid" style="margin-top:12px">
+                            <div class="report-summary-card">
+                                <div class="value" style="color:var(--accent-${avgPct >= 50 ? 'success' : 'danger'})">${grade}</div>
+                                <div class="label">Overall Grade</div>
+                            </div>
+                            <div class="report-summary-card">
+                                <div class="value">${marks.length}</div>
+                                <div class="label">Exams Taken</div>
+                            </div>
+                            <div class="report-summary-card">
+                                <div class="value">${presentDays}/${totalDays}</div>
+                                <div class="label">Days Present</div>
+                            </div>
+                            <div class="report-summary-card">
+                                <div class="value" style="color:var(--accent-${avgPct >= 40 ? 'success' : 'danger'})">${avgPct >= 40 ? 'PASS' : 'FAIL'}</div>
+                                <div class="label">Status</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            renderStudentCharts(marks, presentDays, totalDays - presentDays, subjectAvgs);
+        }
+
+        function renderStudentCharts(marks, present, absent, subjectAvgs) {
+            const subjects = Object.keys(subjectAvgs);
+            const avgs = subjects.map(s => { const arr = subjectAvgs[s]; return parseFloat((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1)); });
+
+            new Chart(document.getElementById('studentSubjectChart'), {
+                type: 'radar',
+                data: {
+                    labels: subjects,
+                    datasets: [{
+                        label: 'My Scores',
+                        data: avgs,
+                        backgroundColor: 'rgba(139,92,246,0.2)',
+                        borderColor: '#8B5CF6',
+                        pointBackgroundColor: '#8B5CF6',
+                        borderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    scales: { r: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E', backdropColor: 'transparent' }, pointLabels: { color: '#8B949E' } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            new Chart(document.getElementById('studentAttChart'), {
+                type: 'doughnut',
+                plugins: [ChartDataLabels],
+                data: {
+                    labels: ['Present', 'Absent'],
+                    datasets: [{ data: [present, absent], backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(239,68,68,0.8)'], borderColor: ['#10B981', '#EF4444'], borderWidth: 2 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#8B949E', padding: 16 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: (value) => {
+                                const total = present + absent;
+                                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return pct > 5 ? pct + '%' : '';
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderAdminDashboard() {
+            const students = getData(KEYS.STUDENTS);
+            const marks = getData(KEYS.MARKS);
+            const attendance = getData(KEYS.ATTENDANCE);
+            const activity = getData(KEYS.ACTIVITY);
+
+            const totalStudents = students.length;
+            let avgScore = marks.length > 0 ? (marks.reduce((s, m) => s + m.percentage, 0) / marks.length).toFixed(1) : 0;
+
+            let totalPresent = 0, totalRecords = 0;
+            attendance.forEach(a => a.records.forEach(r => { totalRecords++; if (r.status === 'Present') totalPresent++; }));
+            const attendanceRate = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+
+            const studentAvgs = students.map(s => {
+                const sMarks = marks.filter(m => m.studentId === s.id);
+                const avg = sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0;
+                return { ...s, avg: parseFloat(avg.toFixed(1)) };
+            }).sort((a, b) => b.avg - a.avg);
+            const topPerformer = studentAvgs[0];
+            const top5 = studentAvgs.slice(0, 5);
+
+            const container = document.getElementById('dashboard-content');
+            container.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Dashboard</h1>
+                        <p class="page-subtitle">Academic overview and analytics</p>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()" title="Export Students">${SVG_ICONS.download} Students CSV</button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportMarksCSV()" title="Export Marks">${SVG_ICONS.download} Marks CSV</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                        <div class="stat-label">Total Students</div>
+                        <div class="stat-value">${totalStudents}</div>
+                    </div>
+                    <div class="stat-card purple">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+                        <div class="stat-label">Average Score</div>
+                        <div class="stat-value">${avgScore}%</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                        <div class="stat-label">Attendance Rate</div>
+                        <div class="stat-value">${attendanceRate}%</div>
+                    </div>
+                    <div class="stat-card amber">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></div>
+                        <div class="stat-label">Top Performer</div>
+                        <div class="stat-value" style="font-size:1.2rem">${topPerformer ? topPerformer.name : 'N/A'}</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card"><h3>Subject-wise Class Average</h3><div class="chart-container"><canvas id="barChart"></canvas></div></div>
+                    <div class="chart-card"><h3>Attendance Overview</h3><div class="chart-container"><canvas id="doughnutChart"></canvas></div></div>
+                </div>
+                <div class="charts-grid mb-20">
+                    <div class="chart-card"><h3>Performance Trend</h3><div class="chart-container"><canvas id="lineChart"></canvas></div></div>
+                    <div class="chart-card"><h3>Grade Distribution</h3><div class="chart-container"><canvas id="gradeChart"></canvas></div></div>
+                </div>
+
+                <div class="dashboard-bottom">
+                    <div class="card">
+                        <h3 class="section-title">🏆 Top 5 Performers</h3>
+                        <table class="data-table compact">
+                            <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Average %</th><th>Grade</th></tr></thead>
+                            <tbody>
+                                ${top5.map((s, i) => `<tr>
+                                    <td><strong>#${i + 1}</strong></td>
+                                    <td><div class="student-name-cell"><div class="avatar-sm">${s.name.charAt(0)}</div>${s.name}</div></td>
+                                    <td>${s.class}-${s.section}</td>
+                                    <td><code>${s.avg}%</code></td>
+                                    <td>${gradeBadge(calcGrade(s.avg))}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card">
+                        <h3 class="section-title">📋 Recent Activity</h3>
+                        <ul class="activity-list">
+                            ${activity.slice(0, 7).map(a => `<li class="activity-item">
+                                <span class="activity-dot"></span>
+                                <span class="activity-msg">${a.message}</span>
+                                <span class="activity-time">${formatDateTime(a.timestamp)}</span>
+                            </li>`).join('')}
+                            ${activity.length === 0 ? '<li class="activity-item"><span class="activity-msg" style="color:var(--text-muted)">No activity yet</span></li>' : ''}
+                        </ul>
+                    </div>
+                </div>`;
+
+            renderAdminCharts(marks, attendance, students);
+        }
+
+        function renderAdminCharts(marks, attendance, students) {
+            const subjectMap = {};
+            marks.forEach(m => m.entries.forEach(e => {
+                if (!subjectMap[e.subject]) subjectMap[e.subject] = [];
+                subjectMap[e.subject].push(e.obtained);
+            }));
+            const subjects = Object.keys(subjectMap);
+            const subjectAvgs = subjects.map(s => parseFloat((subjectMap[s].reduce((a, b) => a + b, 0) / subjectMap[s].length).toFixed(1)));
+
+            new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: { labels: subjects, datasets: [{ label: 'Average Marks', data: subjectAvgs, backgroundColor: 'rgba(59,130,246,0.7)', borderColor: 'rgba(59,130,246,1)', borderWidth: 1, borderRadius: 6, barThickness: 40 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } }
+            });
+
+            let totalP = 0, totalA = 0;
+            attendance.forEach(a => a.records.forEach(r => { if (r.status === 'Present') totalP++; else totalA++; }));
+            const totalRec = totalP + totalA;
+            const pPct = totalRec > 0 ? Math.round((totalP / totalRec) * 100) : 0;
+            const aPct = totalRec > 0 ? Math.round((totalA / totalRec) * 100) : 0;
+
+            new Chart(document.getElementById('doughnutChart'), {
+                type: 'doughnut',
+                plugins: [ChartDataLabels],
+                data: { labels: [`Present (${pPct}%)`, `Absent (${aPct}%)`], datasets: [{ data: [totalP, totalA], backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(239,68,68,0.8)'], borderColor: ['#10B981', '#EF4444'], borderWidth: 2 }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: true, 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#8B949E', padding: 16 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: (value) => {
+                                const pct = totalRec > 0 ? Math.round((value / totalRec) * 100) : 0;
+                                return pct > 5 ? pct + '%' : ''; // Only show if > 5% to avoid clutter
+                            }
+                        }
+                    }, 
+                    cutout: '65%' 
+                }
+            });
+
+            const top5 = students.map(s => {
+                const sMarks = marks.filter(m => m.studentId === s.id);
+                return { name: s.name, marks: sMarks, avg: sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0 };
+            }).sort((a, b) => b.avg - a.avg).slice(0, 5);
+            const examTypes = [...new Set(marks.map(m => m.exam))];
+            const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
+
+            new Chart(document.getElementById('lineChart'), {
+                type: 'line',
+                data: {
+                    labels: examTypes,
+                    datasets: top5.map((s, i) => ({
+                        label: s.name, data: examTypes.map(exam => { const m = s.marks.find(mk => mk.exam === exam); return m ? m.percentage : null; }),
+                        borderColor: colors[i], backgroundColor: colors[i] + '20', fill: i === 0, tension: 0.4, pointRadius: 5, pointHoverRadius: 7
+                    }))
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { color: '#8B949E', padding: 12 } } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } }
+            });
+
+            const gradeCount = {};
+            const totalGrades = marks.length;
+            marks.forEach(m => { gradeCount[m.grade] = (gradeCount[m.grade] || 0) + 1; });
+            const gradeLabels = Object.keys(gradeCount).sort();
+            const gradeColors = { 'A+': '#10B981', 'A': '#34D399', 'B+': '#3B82F6', 'B': '#60A5FA', 'C': '#F59E0B', 'D': '#F97316', 'F': '#EF4444' };
+            new Chart(document.getElementById('gradeChart'), {
+                type: 'polarArea',
+                plugins: [ChartDataLabels],
+                data: { 
+                    labels: gradeLabels.map(g => `${g} (${totalGrades > 0 ? Math.round((gradeCount[g] / totalGrades) * 100) : 0}%)`), 
+                    datasets: [{ data: gradeLabels.map(g => gradeCount[g]), backgroundColor: gradeLabels.map(g => (gradeColors[g] || '#8B5CF6') + 'AA'), borderColor: gradeLabels.map(g => gradeColors[g] || '#8B5CF6'), borderWidth: 1 }] 
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: true, 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#8B949E', padding: 12 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 11 },
+                            formatter: (value) => {
+                                const pct = totalGrades > 0 ? Math.round((value / totalGrades) * 100) : 0;
+                                return pct > 0 ? pct + '%' : '';
+                            }
+                        }
+                    }, 
+                    scales: { r: { grid: { color: '#30363D' }, ticks: { display: false } } } 
+                }
+            });
+        }
+
+        initPage('dashboard');
+    </script>
+</body>
+</html>
+
+
+

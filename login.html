@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="UPAY NGO, Nagpur — Student Progress Management System. Login to manage students, marks, attendance, and reports.">
+    <title>Login — UPAY NGO, Nagpur</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="assets/upay_logo.png">
+</head>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 50%, #f5f0ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -120px; left: -120px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -100px; right: -100px;
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .login-container {
+            display: flex;
+            width: 100%;
+            max-width: 960px;
+            min-height: 540px;
+            background: #fff;
+            border-radius: 28px;
+            box-shadow: 0 24px 80px rgba(99,102,241,0.14), 0 4px 24px rgba(0,0,0,0.08);
+            overflow: visible;
+            position: relative;
+        }
+
+        .login-illustration {
+            flex: 1.1;
+            background: linear-gradient(160deg, #f5f7ff 0%, #eef0f9 100%);
+            border-radius: 28px 0 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .login-illustration img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-height: 440px;
+        }
+
+        .login-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px 40px;
+            position: relative;
+            background: #fff;
+            border-radius: 28px;
+        }
+
+        .brand-logo-img {
+            width: 120px;
+            height: auto;
+            margin-bottom: 16px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .role-tabs-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .role-tabs {
+            display: inline-flex;
+            background: #f1f3ff;
+            border-radius: 50px;
+            padding: 4px;
+            gap: 2px;
+            border: 1px solid #e0e3f5;
+        }
+
+        .role-tab {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #6b7280;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .role-tab.active {
+            background: #6366f1;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+        }
+
+        .role-tab:hover:not(.active) {
+            color: #6366f1;
+            background: rgba(99,102,241,0.08);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 360px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e8eaff;
+            position: relative;
+        }
+
+        .login-card-header {
+            background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+            color: #fff;
+            padding: 18px 28px;
+            text-align: center;
+        }
+
+        .login-card-header h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .login-card-body {
+            background: #fff;
+            padding: 28px 28px 24px;
+        }
+
+        .form-group-custom {
+            margin-bottom: 18px;
+        }
+
+        .form-group-custom label {
+            display: block;
+            font-size: 0.73rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+
+        .form-group-custom input,
+        .form-group-custom select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-family: 'Poppins', sans-serif;
+            color: #1f2937;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+
+        .form-group-custom input:focus,
+        .form-group-custom select:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        }
+
+        .form-group-custom input::placeholder {
+            color: #b0b7c3;
+            font-size: 0.82rem;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 42px;
+        }
+
+        .toggle-password-custom {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: color 0.2s;
+        }
+
+        .toggle-password-custom:hover { color: #6366f1; }
+
+        .toggle-password-custom svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .forgot-link {
+            text-align: right;
+            margin-top: -10px;
+            margin-bottom: 18px;
+        }
+
+        .forgot-link a {
+            font-size: 0.72rem;
+            color: #6366f1;
+            font-weight: 500;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .forgot-link a:hover { opacity: 0.7; }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 0.78rem;
+            text-align: center;
+            margin-bottom: 10px;
+            min-height: 18px;
+            font-weight: 500;
+        }
+
+        .login-btn-custom {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+        }
+
+        .login-btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        }
+
+        .login-btn-custom:active { transform: translateY(0); }
+
+        .login-hint {
+            text-align: center;
+            font-size: 0.72rem;
+            color: #9ca3af;
+            margin-top: 12px;
+        }
+
+        .login-hint code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #6366f1;
+            font-size: 0.72rem;
+        }
+
+        .student-login-info {
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin-bottom: 14px;
+            text-align: center;
+            background: #f5f7ff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 3px solid #6366f1;
+        }
+
+        .login-brand {
+            text-align: center;
+            margin-bottom: 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .login-footer {
+            text-align: center;
+            font-size: 0.72rem;
+            color: #b0b7c3;
+            margin-top: 20px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .login-card.shake { animation: shake 0.4s ease; }
+
+        @media (max-width: 720px) {
+            .login-container { max-width: 420px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+            .login-right { padding: 36px 24px 28px; border-radius: 20px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+
+        <div class="login-right">
+
+            <div class="login-brand">
+                <img src="assets/upay_logo.png" alt="UPAY Logo" class="brand-logo-img">
+                <p>Student Progress Management System</p>
+            </div>
+
+            <div class="role-tabs-wrapper">
+                <div class="role-tabs" id="role-tabs">
+                    <button class="role-tab" data-role="Student" onclick="selectRole(this)">Student</button>
+                    <button class="role-tab active" data-role="Admin" onclick="selectRole(this)">Teacher</button>
+                    <button class="role-tab" data-role="SuperAdmin" onclick="selectRole(this)">Admin</button>
+                </div>
+            </div>
+
+            <div class="login-card" id="login-card">
+                <div class="login-card-header">
+                    <h2>LOG IN</h2>
+                </div>
+
+                <div class="login-card-body">
+
+                    <form id="admin-form" onsubmit="handleAdminLogin(event)">
+                        <div class="form-group-custom">
+                            <label>Email Address</label>
+                            <input type="text" id="admin-username" placeholder="username or email" autocomplete="username" required>
+                        </div>
+                        <div class="form-group-custom">
+                            <label>Password</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="admin-password" placeholder="••••••••••" autocomplete="current-password" required>
+                                <button type="button" class="toggle-password-custom" onclick="togglePassword('admin-password')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="eye-admin">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="login-error" id="admin-error"></div>
+                        <button type="submit" class="login-btn-custom">Log In</button>
+                        <div class="login-hint">Contact System Admin to receive your credentials.</div>
+                    </form>
+
+                    <form id="superadmin-form" style="display:none" onsubmit="handleSuperAdminLogin(event)">
+                        <div class="student-login-info">System Administrator Access</div>
+                        <div class="form-group-custom">
+                            <label>Admin ID</label>
+                            <input type="text" id="superadmin-username" placeholder="admin" required autocomplete="username">
+                        </div>
+                        <div class="form-group-custom">
+                            <label>Password</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="superadmin-password" placeholder="••••••••••" required autocomplete="current-password">
+                                <button type="button" class="toggle-password-custom" onclick="togglePassword('superadmin-password')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="login-error" id="superadmin-error"></div>
+                        <button type="submit" class="login-btn-custom">Access Admin Panel</button>
+                    </form>
+
+                    <form id="student-form" style="display:none" onsubmit="handleStudentLogin(event)">
+                        <div class="student-login-info">Enter your details to log in.</div>
+                        <div class="form-group-custom">
+                            <label>Class &amp; Section</label>
+                            <div class="form-row" style="display:flex;gap:8px">
+                                <select id="stu-class" required style="flex:1">
+                                    <option value="">Class</option>
+                                    <option value="1">1</option><option value="2">2</option>
+                                    <option value="3">3</option><option value="4">4</option>
+                                    <option value="5">5</option><option value="6">6</option>
+                                    <option value="7">7</option><option value="8">8</option>
+                                    <option value="9">9</option><option value="10">10</option>
+                                    <option value="11">11</option><option value="12">12</option>
+                                </select>
+                                <select id="stu-section" required style="flex:1">
+                                    <option value="">Section</option>
+                                    <option value="A">A</option><option value="B">B</option>
+                                    <option value="C">C</option><option value="D">D</option>
+                                    <option value="E">E</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group-custom">
+                            <label>Roll Number</label>
+                            <input type="text" id="stu-rollno" placeholder="e.g. STU001" required>
+                        </div>
+                        <div class="form-group-custom">
+                            <label>Password</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="stu-password" placeholder="••••••••••" required autocomplete="current-password">
+                                <button type="button" class="toggle-password-custom" onclick="togglePassword('stu-password')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="login-error" id="student-error"></div>
+                        <button type="submit" class="login-btn-custom">Log In</button>
+                    </form>
+
+                </div>
+            </div>
+
+            <div class="login-footer">© 2025 UPAY NGO, Nagpur — Academic Management System</div>
+
+
+        </div>
+
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        (function () {
+            const session = getSession();
+            if (session && session.loggedIn) {
+                window.location.href = 'pages/dashboard.html';
+            }
+        })();
+
+        let selectedRole = 'Admin';
+
+        function selectRole(btn) {
+            document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            selectedRole = btn.dataset.role;
+
+            const forms = {
+                'Admin': document.getElementById('admin-form'),
+                'SuperAdmin': document.getElementById('superadmin-form'),
+                'Student': document.getElementById('student-form')
+            };
+
+            Object.values(forms).forEach(f => { if (f) f.style.display = 'none'; });
+            document.querySelectorAll('.login-error').forEach(e => e.textContent = '');
+
+            if (forms[selectedRole]) {
+                forms[selectedRole].style.display = 'block';
+            }
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function shakeCard() {
+            const card = document.getElementById('login-card');
+            card.classList.remove('shake');
+            void card.offsetWidth;
+            card.classList.add('shake');
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value;
+            if (attemptAdminLogin(username, password, 'Admin')) {
+                window.location.href = 'pages/dashboard.html';
+            } else {
+                document.getElementById('admin-error').textContent = 'Invalid Teacher credentials.';
+                shakeCard();
+            }
+        }
+
+        function handleSuperAdminLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('superadmin-username').value.trim();
+            const password = document.getElementById('superadmin-password').value;
+            if (attemptAdminLogin(username, password, 'SuperAdmin')) {
+                window.location.href = 'pages/dashboard.html';
+            } else {
+                document.getElementById('superadmin-error').textContent = 'Invalid Admin credentials.';
+                shakeCard();
+            }
+        }
+
+        function handleStudentLogin(e) {
+            e.preventDefault();
+            const cls = document.getElementById('stu-class').value;
+            const section = document.getElementById('stu-section').value;
+            const rollNo = document.getElementById('stu-rollno').value.trim();
+            const password = document.getElementById('stu-password').value;
+
+            if (!cls || !section || !rollNo || !password) {
+                document.getElementById('student-error').textContent = 'Please fill all fields.';
+                shakeCard();
+                return;
+            }
+
+            if (attemptStudentLogin(cls, section, rollNo, password)) {
+                window.location.href = 'pages/dashboard.html';
+            } else {
+                document.getElementById('student-error').textContent = 'Invalid Student credentials.';
+                shakeCard();
+            }
+        }
+    </script>
+</body>
+
+</html>

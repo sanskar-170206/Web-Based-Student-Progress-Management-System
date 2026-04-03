@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="UPAY NGO, Nagpur Settings — Data management, backup, restore, and system settings.">
+    <title>Settings — UPAY NGO, Nagpur</title>
+    <link rel="stylesheet" href="../css/style.css">
+<link rel="icon" type="image/png" href="../assets/upay_logo.png">
+</head>
+
+<body>
+    <div id="main-content">
+        <p style="color:var(--text-muted)">Loading...</p>
+    </div>
+
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        function pageInit() {
+            renderSettingsPage();
+        }
+
+        function renderSettingsPage() {
+            const students = getData(KEYS.STUDENTS);
+            const marks = getData(KEYS.MARKS);
+            const attendance = getData(KEYS.ATTENDANCE);
+            const activity = getData(KEYS.ACTIVITY);
+
+            let totalSize = 0;
+            Object.values(KEYS).forEach(key => {
+                const val = localStorage.getItem(key);
+                if (val) totalSize += val.length * 2;
+            });
+            const sizeKB = (totalSize / 1024).toFixed(1);
+
+            const container = document.getElementById('main-content');
+            container.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Settings</h1>
+                        <p class="page-subtitle">System configuration and data management</p>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card settings-card">
+                        <h3 class="section-title">📊 Data Overview</h3>
+                        <div class="settings-stats">
+                            <div class="settings-stat-item">
+                                <span class="settings-stat-label">Students</span>
+                                <span class="settings-stat-value">${students.length}</span>
+                            </div>
+                            <div class="settings-stat-item">
+                                <span class="settings-stat-label">Marks Entries</span>
+                                <span class="settings-stat-value">${marks.length}</span>
+                            </div>
+                            <div class="settings-stat-item">
+                                <span class="settings-stat-label">Attendance Records</span>
+                                <span class="settings-stat-value">${attendance.length}</span>
+                            </div>
+                            <div class="settings-stat-item">
+                                <span class="settings-stat-label">Activity Logs</span>
+                                <span class="settings-stat-value">${activity.length}</span>
+                            </div>
+                            <div class="settings-stat-item">
+                                <span class="settings-stat-label">Storage Used</span>
+                                <span class="settings-stat-value">${sizeKB} KB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="section-title">📤 Export Data (CSV)</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Export your data as CSV files for use in Excel, Google Sheets, or other applications.</p>
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" onclick="exportStudentsCSV()">
+                                ${SVG_ICONS.download} <span>Export Students</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportMarksCSV()">
+                                ${SVG_ICONS.download} <span>Export Marks</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportAttendanceCSV()">
+                                ${SVG_ICONS.download} <span>Export Attendance</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="section-title">💾 Backup & Restore</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Create a full backup of all your data as a JSON file, or restore from a previous backup.</p>
+                        <div class="settings-actions">
+                            <button class="btn btn-primary" onclick="backupData()">
+                                ${SVG_ICONS.download} <span>Download Backup</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="restoreData()">
+                                ${SVG_ICONS.upload} <span>Restore from Backup</span>
+                            </button>
+                        </div>
+                        <div class="settings-note">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--accent-warning)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>Restoring from backup will <strong>replace</strong> all current data.</span>
+                        </div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="section-title">🔐 Login Credentials</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Current system credentials (hardcoded for demo purposes):</p>
+                        <div class="credentials-display">
+                            <div class="credential-row">
+                                <span class="badge badge-primary">Teacher</span>
+                                <code>teacher</code> / <code>teacher123</code>
+                            </div>
+                            <div class="credential-row">
+                                <span class="badge badge-info">Student</span>
+                                <span style="color:var(--text-secondary)">Login via Class + Section + Roll Number</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="section-title">🔄 Data Management</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Reset or reseed your data. Use with caution.</p>
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" onclick="reseedData()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                <span>Reseed Sample Data</span>
+                            </button>
+                            <button class="btn btn-danger-outline" onclick="resetAllData()">
+                                ${SVG_ICONS.trash} <span>Reset All Data</span>
+                            </button>
+                        </div>
+                        <div class="settings-note" style="border-color:var(--accent-danger)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--accent-danger)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>Resetting will <strong>permanently delete</strong> all data. This cannot be undone.</span>
+                        </div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="section-title">ℹ️ About UPAY NGO, Nagpur</h3>
+                        <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.8">
+                            <p><strong style="color:var(--text-primary)">UPAY NGO, Nagpur</strong> — Student Progress Management System</p>
+                            <p>Version: <code>1.0.0</code></p>
+                            <p>Built with: HTML5, CSS3, Vanilla JavaScript</p>
+                            <p>Data Storage: Browser localStorage</p>
+                            <p>Charts: Chart.js (CDN)</p>
+                            <p style="margin-top:12px;color:var(--text-muted)">© 2025 UPAY NGO, Nagpur — Academic Management System</p>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function reseedData() {
+            showConfirm(
+                'This will <strong>add sample data</strong> back to the system. Existing data will be kept if present.<br><br>Proceed?',
+                () => {
+                    Object.values(KEYS).forEach(key => {
+                        if (key !== KEYS.SESSION) localStorage.removeItem(key);
+                    });
+                    seedData();
+                    logActivity('Sample data reseeded');
+                    showToast('Sample data restored! Reloading...', 'success');
+                    setTimeout(() => location.reload(), 1200);
+                }
+            );
+        }
+
+        initPage('settings');
+    </script>
+</body>
+
+</html>
+
+

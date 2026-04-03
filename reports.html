@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="UPAY NGO, Nagpur Reports — View and print student academic report cards.">
+    <title>Reports — UPAY NGO, Nagpur</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" href="../assets/upay_logo.png">
+</head>
+<body>
+    <div id="main-content">
+        <div class="page-header no-print">
+            <div>
+                <h1 class="page-title">Reports</h1>
+                <p class="page-subtitle">Student academic report cards</p>
+            </div>
+        </div>
+        <div id="reports-content"><p style="color:var(--text-muted)">Loading...</p></div>
+    </div>
+
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        let selectedStudentId = null;
+
+        function pageInit() {
+            if (isStudent()) {
+                const session = getSession();
+                selectedStudentId = session.studentId;
+                renderStudentOnlyReport();
+            } else {
+                renderFullReportsPage();
+                const params = new URLSearchParams(window.location.search);
+                const sid = params.get('student');
+                if (sid) selectStudent(sid);
+            }
+        }
+
+        function renderStudentOnlyReport() {
+            const container = document.getElementById('reports-content');
+            container.innerHTML = `<div class="report-panel" id="report-panel" style="max-height:none"><p style="color:var(--text-muted)">Loading your report...</p></div>`;
+            renderReportCard(selectedStudentId);
+        }
+
+        function renderFullReportsPage() {
+            const container = document.getElementById('reports-content');
+            container.innerHTML = `
+                <div class="reports-layout" id="reports-layout">
+                    <div class="student-list-panel no-print" id="student-list-panel">
+                        <h3>Select Student</h3>
+                        <input type="text" class="student-list-search" id="report-search" placeholder="Search students..." oninput="filterReportStudents()">
+                        <ul class="student-list" id="report-student-list"></ul>
+                    </div>
+                    <div class="report-panel" id="report-panel">
+                        <div class="report-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;color:var(--text-muted)">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                            </svg>
+                            <h3>Select a student to view their report card</h3>
+                            <p style="color:var(--text-muted)">Click on a student from the list on the left</p>
+                        </div>
+                    </div>
+                </div>`;
+            loadStudentList();
+        }
+
+        function loadStudentList() {
+            const students = getData(KEYS.STUDENTS);
+            renderStudentList(students);
+        }
+
+        function filterReportStudents() {
+            const query = document.getElementById('report-search').value.toLowerCase();
+            const students = getData(KEYS.STUDENTS);
+            const filtered = students.filter(s =>
+                s.name.toLowerCase().includes(query) || s.rollNo.toLowerCase().includes(query)
+            );
+            renderStudentList(filtered);
+        }
+
+        function renderStudentList(students) {
+            const list = document.getElementById('report-student-list');
+            list.innerHTML = students.map(s => `
+                <li class="student-list-item ${selectedStudentId === s.id ? 'active' : ''}" onclick="selectStudent('${s.id}')">
+                    <div class="avatar-sm">${s.name.charAt(0)}</div>
+                    <div>
+                        <div>${s.name}</div>
+                        <div class="meta">${s.rollNo} · Class ${s.class}-${s.section}</div>
+                    </div>
+                </li>
+            `).join('');
+            if (students.length === 0) {
+                list.innerHTML = '<li style="padding:20px;text-align:center;color:var(--text-muted)">No students found</li>';
+            }
+        }
+
+        function selectStudent(id) {
+            selectedStudentId = id;
+            loadStudentList();
+            renderReportCard(id);
+        }
+
+        function renderReportCard(studentId) {
+            const student = getStudentById(studentId);
+            if (!student) return;
+
+            const marks = getData(KEYS.MARKS).filter(m => m.studentId === studentId);
+            const attendance = getData(KEYS.ATTENDANCE);
+            const allStudents = getData(KEYS.STUDENTS);
+            const allMarks = getData(KEYS.MARKS);
+
+            let totalDays = 0, presentDays = 0;
+            attendance.forEach(a => {
+                const rec = a.records.find(r => r.studentId === studentId);
+                if (rec) { totalDays++; if (rec.status === 'Present') presentDays++; }
+            });
+            const absentDays = totalDays - presentDays;
+            const attendancePct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+            const overallAvg = marks.length > 0 ? parseFloat((marks.reduce((s, m) => s + m.percentage, 0) / marks.length).toFixed(1)) : 0;
+            const overallGrade = calcGrade(overallAvg);
+
+            const studentRanks = allStudents.map(s => {
+                const sMarks = allMarks.filter(m => m.studentId === s.id);
+                const avg = sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0;
+                return { id: s.id, avg };
+            }).sort((a, b) => b.avg - a.avg);
+            const rank = studentRanks.findIndex(s => s.id === studentId) + 1;
+
+            let remarks = '';
+            if (overallAvg >= 90) remarks = 'Outstanding performance. Keep it up!';
+            else if (overallAvg >= 75) remarks = 'Good performance. Consistent effort shown.';
+            else if (overallAvg >= 60) remarks = 'Satisfactory. Room for improvement.';
+            else if (overallAvg >= 50) remarks = 'Average performance. Needs to work harder.';
+            else remarks = 'Below average. Immediate attention required.';
+
+            const passStatus = overallAvg >= 40;
+            const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+            const examGroups = {};
+            marks.forEach(m => { if (!examGroups[m.exam]) examGroups[m.exam] = []; examGroups[m.exam].push(m); });
+
+            const panel = document.getElementById('report-panel');
+            panel.innerHTML = `
+                <div class="report-card" id="report-card-print">
+                    <div class="report-header">
+                        <img src="../assets/upay_logo.png" alt="UPAY Logo" style="height: 64px; margin-bottom: 12px;">
+                        <div class="report-school-sub">Academic Report Card — ${new Date().getFullYear()}</div>
+                        <div class="report-student-info">
+                            <div class="report-avatar">${initials}</div>
+                            <div class="report-details">
+                                <h2>${student.name}</h2>
+                                <div class="report-details-grid">
+                                    <span>Roll No: <strong><code>${student.rollNo}</code></strong></span>
+                                    <span>Class: <strong>${student.class}-${student.section}</strong></span>
+                                    <span>Gender: <strong>${student.gender}</strong></span>
+                                    <span>Year: <strong>${new Date().getFullYear()}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${Object.keys(examGroups).length > 0 ? Object.entries(examGroups).map(([exam, mList]) => `
+                        <div class="report-section">
+                            <div class="report-section-title">📝 ${exam} Examination</div>
+                            ${mList.map(m => `
+                                <table class="data-table compact" style="margin-bottom:12px">
+                                    <thead><tr><th>Subject</th><th>Max Marks</th><th>Obtained</th><th>Grade</th></tr></thead>
+                                    <tbody>
+                                        ${m.entries.map(e => `<tr>
+                                            <td>${e.subject}</td>
+                                            <td><code>${e.maxMarks}</code></td>
+                                            <td><code>${e.obtained}</code></td>
+                                            <td>${gradeBadge(calcGrade((e.obtained / e.maxMarks) * 100))}</td>
+                                        </tr>`).join('')}
+                                        <tr style="font-weight:600;background:var(--bg-elevated)">
+                                            <td>Total</td>
+                                            <td><code>${m.entries.reduce((s, e) => s + e.maxMarks, 0)}</code></td>
+                                            <td><code>${m.total}</code></td>
+                                            <td>${gradeBadge(m.grade)} <span style="margin-left:8px;color:var(--text-secondary)">${m.percentage}%</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            `).join('')}
+                        </div>
+                    `).join('') : '<div class="report-section"><div class="report-section-title">📝 Marks</div><p style="color:var(--text-muted)">No marks recorded yet.</p></div>'}
+
+                    <div class="report-section">
+                        <div class="report-section-title">📅 Attendance Record</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <div style="text-align:center"><div style="font-size:1.3rem;font-weight:700">${totalDays}</div><div style="font-size:0.78rem;color:var(--text-secondary)">Total Days</div></div>
+                            <div style="text-align:center"><div style="font-size:1.3rem;font-weight:700;color:var(--accent-success)">${presentDays}</div><div style="font-size:0.78rem;color:var(--text-secondary)">Present</div></div>
+                            <div style="text-align:center"><div style="font-size:1.3rem;font-weight:700;color:var(--accent-danger)">${absentDays}</div><div style="font-size:0.78rem;color:var(--text-secondary)">Absent</div></div>
+                        </div>
+                        <div style="margin-bottom:8px;font-size:0.85rem;color:var(--text-secondary)">Attendance: ${attendancePct}%</div>
+                        <div class="progress-bar-lg"><div class="progress-fill" style="width:${attendancePct}%;background:${attendancePct >= 75 ? 'var(--accent-success)' : attendancePct >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)'}"></div></div>
+                    </div>
+
+                    <div class="report-section">
+                        <div class="report-section-title">📊 Performance Summary</div>
+                        <div class="report-summary-grid">
+                            <div class="report-summary-card"><div class="value" style="color:${passStatus ? 'var(--accent-success)' : 'var(--accent-danger)'}">${overallGrade}</div><div class="label">Overall Grade</div></div>
+                            <div class="report-summary-card"><div class="value">${overallAvg}%</div><div class="label">Average</div></div>
+                            <div class="report-summary-card"><div class="value">#${rank}</div><div class="label">Class Rank</div></div>
+                            <div class="report-summary-card"><div class="value" style="color:${passStatus ? 'var(--accent-success)' : 'var(--accent-danger)'};font-size:1.1rem">${passStatus ? 'PASS' : 'FAIL'}</div><div class="label">Status</div></div>
+                        </div>
+                    </div>
+
+                    <div class="report-remarks">"${remarks}"</div>
+
+                    <div class="no-print" style="margin-top:24px;text-align:center">
+                        <button class="btn btn-primary" onclick="window.print()">
+                            ${SVG_ICONS.print} Print Report Card
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        initPage('reports');
+    </script>
+</body>
+</html>
+
+

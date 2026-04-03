@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="UPAY NGO, Nagpur Analytics — Detailed performance analytics and comparisons.">
+    <title>Analytics — UPAY NGO, Nagpur</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<link rel="icon" type="image/png" href="../assets/upay_logo.png">
+</head>
+<body>
+    <div id="main-content" class="fade-in-up">
+        <p style="color:var(--text-muted)">Loading...</p>
+    </div>
+
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        function pageInit() {
+            renderAnalyticsPage();
+        }
+
+        function renderAnalyticsPage() {
+            const students = getData(KEYS.STUDENTS);
+            const marks = getData(KEYS.MARKS);
+            const attendance = getData(KEYS.ATTENDANCE);
+            const container = document.getElementById('main-content');
+
+            const classGroups = {};
+            students.forEach(s => {
+                const key = `${s.class}-${s.section}`;
+                if (!classGroups[key]) classGroups[key] = { students: [], marks: [] };
+                classGroups[key].students.push(s);
+            });
+            marks.forEach(m => {
+                const s = students.find(st => st.id === m.studentId);
+                if (s) {
+                    const key = `${s.class}-${s.section}`;
+                    if (classGroups[key]) classGroups[key].marks.push(m);
+                }
+            });
+
+            let passCount = 0, failCount = 0;
+            const studentFinalAvgs = students.map(s => {
+                const sMarks = marks.filter(m => m.studentId === s.id);
+                const avg = sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0;
+                if (avg >= 40) passCount++; else failCount++;
+                return { ...s, avg: parseFloat(avg.toFixed(1)) };
+            });
+
+            const atRiskStudents = students.map(s => {
+                let total = 0, present = 0;
+                attendance.forEach(a => {
+                    const rec = a.records.find(r => r.studentId === s.id);
+                    if (rec) { total++; if (rec.status === 'Present') present++; }
+                });
+                const pct = total > 0 ? Math.round((present / total) * 100) : 100;
+                return { ...s, attendancePct: pct, totalDays: total, presentDays: present };
+            }).filter(s => s.attendancePct < 75 && s.totalDays > 0).sort((a, b) => a.attendancePct - b.attendancePct);
+
+            const subjectStats = {};
+            marks.forEach(m => {
+                m.entries.forEach(e => {
+                    if (!subjectStats[e.subject]) subjectStats[e.subject] = { scores: [], fails: 0, total: 0 };
+                    const pct = (e.obtained / e.maxMarks) * 100;
+                    subjectStats[e.subject].scores.push(pct);
+                    subjectStats[e.subject].total++;
+                    if (pct < 40) subjectStats[e.subject].fails++;
+                });
+            });
+
+            const needAttention = studentFinalAvgs.filter(s => s.avg < 50 && s.avg > 0).sort((a, b) => a.avg - b.avg);
+
+            container.innerHTML = `
+                <div class="page-header fade-in-up delay-100">
+                    <div>
+                        <h1 class="page-title">Analytics</h1>
+                        <p class="page-subtitle">In-depth performance analysis and insights</p>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm pulse-on-hover" onclick="exportMarksCSV()">
+                            ${SVG_ICONS.download} Export Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="margin-bottom:24px">
+                    <div class="stat-card green fade-in-up delay-200">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                        <div class="stat-label">Pass Rate</div>
+                        <div class="stat-value counter-animate">${students.length > 0 ? Math.round((passCount / students.length) * 100) : 0}%</div>
+                    </div>
+                    <div class="stat-card amber fade-in-up delay-300">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                        <div class="stat-label">At-Risk (Attendance)</div>
+                        <div class="stat-value counter-animate">${atRiskStudents.length}</div>
+                    </div>
+                    <div class="stat-card purple fade-in-up delay-400">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+                        <div class="stat-label">Total Exams</div>
+                        <div class="stat-value counter-animate">${[...new Set(marks.map(m => m.exam))].length}</div>
+                    </div>
+                    <div class="stat-card blue fade-in-up delay-500">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                        <div class="stat-label">Subjects Tracked</div>
+                        <div class="stat-value counter-animate">${Object.keys(subjectStats).length}</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid mb-20 fade-in-up delay-600">
+                    <div class="chart-card hover-lift">
+                        <h3>Class-wise Average Performance</h3>
+                        <div class="chart-container"><canvas id="classAvgChart"></canvas></div>
+                    </div>
+                    <div class="chart-card hover-lift">
+                        <h3>Pass / Fail Distribution</h3>
+                        <div class="chart-container"><canvas id="passFailChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="charts-grid mb-20 fade-in-up delay-700">
+                    <div class="chart-card hover-lift">
+                        <h3>Subject Difficulty Analysis</h3>
+                        <div class="chart-container"><canvas id="subjectDiffChart"></canvas></div>
+                    </div>
+                    <div class="chart-card hover-lift">
+                        <h3>Score Distribution (All Students)</h3>
+                        <div class="chart-container"><canvas id="scoreDistChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-bottom fade-in-up delay-800">
+                    <div class="card hover-lift">
+                        <h3 class="section-title">⚠️ Students Needing Attention (Below 50%)</h3>
+                        ${needAttention.length > 0 ? `
+                        <table class="data-table compact">
+                            <thead><tr><th>Name</th><th>Class</th><th>Average</th><th>Grade</th></tr></thead>
+                            <tbody>
+                                ${needAttention.map(s => `<tr class="table-row-hover">
+                                    <td><div class="student-name-cell"><div class="avatar-sm glow">${s.name.charAt(0)}</div>${s.name}</div></td>
+                                    <td>${s.class}-${s.section}</td>
+                                    <td><code class="text-danger glow-text">${s.avg}%</code></td>
+                                    <td>${gradeBadge(calcGrade(s.avg))}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>` : '<p style="color:var(--text-muted);text-align:center;padding:20px" class="bounce-in">All students are above 50% — Great job! 🎉</p>'}
+                    </div>
+                    <div class="card hover-lift">
+                        <h3 class="section-title">🚨 Attendance Risk (Below 75%)</h3>
+                        ${atRiskStudents.length > 0 ? `
+                        <table class="data-table compact">
+                            <thead><tr><th>Name</th><th>Class</th><th>Attendance</th><th>Status</th></tr></thead>
+                            <tbody>
+                                ${atRiskStudents.map(s => `<tr class="table-row-hover">
+                                    <td><div class="student-name-cell"><div class="avatar-sm glow">${s.name.charAt(0)}</div>${s.name}</div></td>
+                                    <td>${s.class}-${s.section}</td>
+                                    <td>
+                                        <div class="pct-cell">
+                                            <div class="progress-bar-mini"><div class="progress-fill fill-anim" style="width:${s.attendancePct}%;background:${s.attendancePct >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)'}"></div></div>
+                                            <span class="${s.attendancePct >= 50 ? 'text-warning' : 'text-danger'}">${s.attendancePct}%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge badge-danger pulse-danger">At Risk</span></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>` : '<p style="color:var(--text-muted);text-align:center;padding:20px" class="bounce-in">No students below 75% attendance 👍</p>'}
+                    </div>
+                </div>`;
+
+            renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentFinalAvgs);
+        }
+
+        function renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentAvgs) {
+            const classLabels = Object.keys(classGroups).sort();
+            const classAvgs = classLabels.map(cls => {
+                const m = classGroups[cls].marks;
+                return m.length > 0 ? parseFloat((m.reduce((s, mk) => s + mk.percentage, 0) / m.length).toFixed(1)) : 0;
+            });
+
+            new Chart(document.getElementById('classAvgChart'), {
+                type: 'bar',
+                data: { labels: classLabels.map(c => 'Class ' + c), datasets: [{ label: 'Avg %', data: classAvgs, backgroundColor: classAvgs.map(v => v >= 70 ? 'rgba(16,185,129,0.7)' : v >= 50 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.7)'), borderRadius: 6, barThickness: 36 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } }
+            });
+
+            const totalResults = passCount + failCount;
+            const passPct = totalResults > 0 ? Math.round((passCount / totalResults) * 100) : 0;
+            const failPct = totalResults > 0 ? Math.round((failCount / totalResults) * 100) : 0;
+            new Chart(document.getElementById('passFailChart'), {
+                type: 'doughnut',
+                plugins: [ChartDataLabels],
+                data: { labels: [`Pass (≥40%) (${passPct}%)`, `Fail (<40%) (${failPct}%)`], datasets: [{ data: [passCount, failCount], backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(239,68,68,0.8)'], borderWidth: 2, borderColor: ['#10B981', '#EF4444'] }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: true, cutout: '60%', 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#8B949E', padding: 16 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 14 },
+                            formatter: (value) => {
+                                const pct = totalResults > 0 ? Math.round((value / totalResults) * 100) : 0;
+                                return pct > 0 ? pct + '%' : '';
+                            }
+                        }
+                    } 
+                }
+            });
+
+            const subjects = Object.keys(subjectStats);
+            const avgBySubject = subjects.map(s => parseFloat((subjectStats[s].scores.reduce((a, b) => a + b, 0) / subjectStats[s].scores.length).toFixed(1)));
+
+            new Chart(document.getElementById('subjectDiffChart'), {
+                type: 'radar',
+                data: { labels: subjects, datasets: [{ label: 'Avg Score %', data: avgBySubject, backgroundColor: 'rgba(59,130,246,0.2)', borderColor: '#3B82F6', pointBackgroundColor: '#3B82F6', borderWidth: 2, pointRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { r: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E', backdropColor: 'transparent' }, pointLabels: { color: '#8B949E' } } }, plugins: { legend: { display: false } } }
+            });
+
+            const buckets = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
+            studentAvgs.forEach(s => {
+                if (s.avg <= 20) buckets['0-20']++;
+                else if (s.avg <= 40) buckets['21-40']++;
+                else if (s.avg <= 60) buckets['41-60']++;
+                else if (s.avg <= 80) buckets['61-80']++;
+                else buckets['81-100']++;
+            });
+
+            const totalStudentsCount = Object.values(buckets).reduce((a, b) => a + b, 0);
+            new Chart(document.getElementById('scoreDistChart'), {
+                type: 'bar',
+                plugins: [ChartDataLabels],
+                data: { 
+                    labels: Object.keys(buckets).map(k => `${k} (${totalStudentsCount > 0 ? Math.round((buckets[k] / totalStudentsCount) * 100) : 0}%)`), 
+                    datasets: [{ label: 'Students', data: Object.values(buckets), backgroundColor: ['rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)', 'rgba(59,130,246,0.7)', 'rgba(139,92,246,0.7)', 'rgba(16,185,129,0.7)'], borderRadius: 6, barThickness: 40 }] 
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: true, 
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#fff',
+                            offset: -2,
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (value) => {
+                                const pct = totalStudentsCount > 0 ? Math.round((value / totalStudentsCount) * 100) : 0;
+                                return pct > 0 ? pct + '%' : '';
+                            }
+                        }
+                    }, 
+                    scales: { y: { beginAtZero: true, grid: { color: '#30363D' }, ticks: { color: '#8B949E', stepSize: 1 } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } 
+                }
+            });
+        }
+
+        initPage('analytics');
+    </script>
+</body>
+</html>
+
+
+
