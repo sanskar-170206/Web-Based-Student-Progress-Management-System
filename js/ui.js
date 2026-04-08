@@ -19,7 +19,10 @@ const SVG_ICONS = {
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
     upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
     award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
-    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    activities: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+    map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+    location: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
 };
 
 function renderShell(activePage) {
@@ -33,11 +36,13 @@ function renderShell(activePage) {
         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', href: 'dashboard.html', roles: ['Admin', 'SuperAdmin', 'Student'] },
         { id: 'admin', label: 'Admin Panel', icon: 'user', href: 'admin.html', roles: ['SuperAdmin'] },
         { id: 'students', label: 'Students', icon: 'students', href: 'students.html', roles: ['Admin', 'SuperAdmin'] },
+        { id: 'staff', label: 'Staff Management', icon: 'user', href: 'staff.html', roles: ['Admin', 'SuperAdmin'] },
+        { id: 'activities', label: 'NGO Activities', icon: 'activities', href: 'activities.html', roles: ['Admin', 'SuperAdmin'] },
         { id: 'attendance', label: 'Attendance', icon: 'attendance', href: 'attendance.html', roles: ['Admin', 'SuperAdmin'] },
         { id: 'marks', label: 'Marks', icon: 'marks', href: 'marks.html', roles: ['Admin', 'SuperAdmin'] },
         { id: 'reports', label: 'Reports', icon: 'reports', href: 'reports.html', roles: ['Admin', 'SuperAdmin', 'Student'] },
         { id: 'analytics', label: 'Analytics', icon: 'analytics', href: 'analytics.html', roles: ['Admin', 'SuperAdmin'] },
-        { id: 'settings', label: 'Settings', icon: 'settings', href: 'settings.html', roles: ['Admin', 'SuperAdmin'] }
+        { id: 'settings', label: 'Settings', icon: 'settings', href: 'settings.html', roles: ['Admin', 'SuperAdmin', 'Student'] }
     ];
 
     const visibleNav = navItems.filter(n => n.roles.includes(role));
@@ -47,14 +52,16 @@ function renderShell(activePage) {
         <div class="header-left">
             <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">${SVG_ICONS.menu}</button>
             <div class="header-logo">
-                <img src="../assets/upay_logo.png" alt="Logo" class="shell-logo-img">
+                <img src="assets/upay_logo.png" alt="Logo" class="shell-logo-img">
                 <span class="logo-text">UPAY NGO, Nagpur</span>
             </div>
         </div>
         <div class="header-right">
             <button class="header-icon-btn" title="Notifications">${SVG_ICONS.bell}<span class="notif-dot"></span></button>
             <div class="header-user">
-                <div class="avatar-circle">${initials}</div>
+                <div class="avatar-circle">
+                    ${session.profilePic ? `<img src="${session.profilePic}" alt="Profile" class="avatar-img-round">` : initials}
+                </div>
                 <span class="header-username">${session.name || session.username}</span>
                 <span class="header-role-badge">${role === 'SuperAdmin' ? 'System Admin' : (role === 'Admin' ? 'Teacher' : role)}</span>
             </div>
@@ -65,7 +72,7 @@ function renderShell(activePage) {
     const sidebarHTML = `
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="../assets/upay_logo.png" alt="Logo" class="shell-logo-img">
+            <img src="assets/upay_logo.png" alt="Logo" class="shell-logo-img">
             <span class="sidebar-title">UPAY NGO, Nagpur</span>
         </div>
         <nav class="sidebar-nav">
@@ -77,7 +84,7 @@ function renderShell(activePage) {
             `).join('')}
         </nav>
         <div class="sidebar-footer">
-            <div class="sidebar-footer-text">© 2025 UPAY NGO, Nagpur</div>
+            <div class="sidebar-footer-text">© 2026 UPAY NGO, Nagpur</div>
         </div>
     </aside>`;
 
@@ -98,7 +105,7 @@ function toggleSidebar() {
 
 function handleLogout() {
     clearSession();
-    window.location.href = '../login.html';
+    window.location.href = 'login.html';
 }
 
 function showToast(message, type = 'info') {

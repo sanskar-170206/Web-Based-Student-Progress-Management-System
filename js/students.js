@@ -60,7 +60,7 @@ function renderStudentsTable(students) {
                 ${students.map((s, i) => `
                     <tr onclick="viewStudentReport('${s.id}')" class="clickable-row">
                         <td>${i + 1}</td>
-                        <td><div class="student-name-cell"><div class="avatar-sm">${s.name.charAt(0)}</div>${s.name}</div></td>
+                        <td><div class="student-name-cell"><div class="avatar-sm">${s.profilePic ? `<img src="${s.profilePic}" alt="Profile" class="avatar-img-round">` : s.name.charAt(0)}</div>${s.name}</div></td>
                         <td><code>${s.rollNo}</code></td>
                         <td>${s.class}</td>
                         <td>${s.section}</td>
@@ -132,11 +132,38 @@ function getStudentFormHTML(student = null) {
                 </div>
                 <div class="form-group">
                     <label>Email <span class="required">*</span></label>
-                    <input type="email" id="sf-email" value="${isEdit ? (student.email || '') : ''}" required placeholder="student@gmail.com" pattern=".*@gmail\.com" title="Please enter a valid @gmail.com address">
+                    <input type="email" id="sf-email" value="${isEdit ? (student.email || '') : ''}" required placeholder="student@gmail.com" pattern=".*(@gmail\.com|@\.in)" title="Please enter a valid @gmail.com or @.in address">
                 </div>
                 <div class="form-group">
                     <label>Login Password <span class="required">*</span></label>
                     <input type="text" id="sf-password" value="${isEdit ? (student.password || '') : ''}" required placeholder="Set password for student login">
+                </div>
+                <div class="form-group">
+                    <label>Blood Group <span class="required">*</span></label>
+                    <select id="sf-bloodGroup" required>
+                        <option value="">Select Blood Group</option>
+                        ${['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => `<option value="${bg}" ${isEdit && student.bloodGroup === bg ? 'selected' : ''}>${bg}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Emergency Contact <span class="required">*</span></label>
+                    <input type="tel" id="sf-emergency" value="${isEdit ? (student.emergencyContact || '') : ''}" required placeholder="Emergency phone" pattern="[0-9]{10,15}">
+                </div>
+                <div class="form-group full-width" style="display: flex; align-items: center; gap: 20px; background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 8px;">
+                    <div class="profile-setup-mini" style="position:relative">
+                        <div class="avatar-sm" id="sf-avatar-preview" style="width: 60px; height: 60px; font-size: 1.2rem; border: 2px solid var(--border); overflow: hidden; display: flex; align-items: center; justify-content: center">
+                            ${isEdit && student.profilePic ? `<img src="${student.profilePic}" alt="Profile" class="avatar-img-round">` : (isEdit ? student.name.charAt(0) : '?')}
+                        </div>
+                        <input type="file" id="sf-pic-input" style="display: none" accept="image/*" onchange="handleStudentFormPic(this)">
+                        <button type="button" class="btn-logout" style="position: absolute; bottom: -5px; right: -5px; padding: 4px; border-radius: 50%; width: 22px; height: 22px; justify-content: center" onclick="document.getElementById('sf-pic-input').click()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width: 12px; height: 12px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </button>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem">${isEdit ? 'Update Student Picture' : 'Add Student Picture'}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted)">Recommended: Square image, max 1MB</div>
+                    </div>
+                    <input type="hidden" id="sf-profilePic" value="${isEdit && student.profilePic ? student.profilePic : ''}">
                 </div>
             </div>
             <div class="modal-actions">
@@ -167,14 +194,17 @@ function saveStudent(event, editId) {
     const parentContact = document.getElementById('sf-contact').value.trim();
     const email = document.getElementById('sf-email').value.trim();
     const password = document.getElementById('sf-password').value.trim();
+    const bloodGroup = document.getElementById('sf-bloodGroup').value;
+    const emergencyContact = document.getElementById('sf-emergency').value.trim();
+    const profilePic = document.getElementById('sf-profilePic').value;
 
-    if (!name || !rollNo || !cls || !section || !gender || !parentContact || !email || !password) {
+    if (!name || !rollNo || !cls || !section || !gender || !parentContact || !email || !password || !bloodGroup || !emergencyContact) {
         showToast('Please fill all required fields', 'error');
         return;
     }
     
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-        showToast('Only @gmail.com email addresses are allowed', 'error');
+    if (!email.toLowerCase().endsWith('@gmail.com') && !email.toLowerCase().endsWith('@.in')) {
+        showToast('Only @gmail.com or @.in email addresses are allowed', 'error');
         return;
     }
 
@@ -190,14 +220,14 @@ function saveStudent(event, editId) {
     if (editId) {
         const idx = students.findIndex(s => s.id === editId);
         if (idx >= 0) {
-            students[idx] = { ...students[idx], name, rollNo, class: cls, section, gender, parentContact, email, password };
+            students[idx] = { ...students[idx], name, rollNo, class: cls, section, gender, parentContact, email, password, bloodGroup, emergencyContact, profilePic };
             showToast(`Student "${name}" updated successfully`, 'success');
             logActivity(`Student "${name}" (${rollNo}) updated`);
         }
     } else {
         students.push({
             id: generateId(), name, rollNo, class: cls, section, gender,
-            parentContact, email, password, createdAt: new Date().toISOString()
+            parentContact, email, password, bloodGroup, emergencyContact, profilePic, createdAt: new Date().toISOString()
         });
         showToast(`Student "${name}" added successfully`, 'success');
         logActivity(`Student "${name}" added to Class ${cls}-${section}`);
@@ -227,6 +257,24 @@ function deleteStudent(id, name) {
         logActivity(`Student "${name}" deleted`);
         renderStudentsPage();
     });
+}
+
+function handleStudentFormPic(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+        showToast('Image size should be less than 1MB', 'warning');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        document.getElementById('sf-profilePic').value = base64;
+        document.getElementById('sf-avatar-preview').innerHTML = `<img src="${base64}" alt="Profile" class="avatar-img-round">`;
+    };
+    reader.readAsDataURL(file);
 }
 
 function viewStudentReport(studentId) {

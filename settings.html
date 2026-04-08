@@ -7,8 +7,8 @@
     <meta name="description"
         content="UPAY NGO, Nagpur Settings — Data management, backup, restore, and system settings.">
     <title>Settings — UPAY NGO, Nagpur</title>
-    <link rel="stylesheet" href="../css/style.css">
-<link rel="icon" type="image/png" href="../assets/upay_logo.png">
+    <link rel="stylesheet" href="css/style.css">
+<link rel="icon" type="image/png" href="assets/upay_logo.png">
 </head>
 
 <body>
@@ -16,9 +16,9 @@
         <p style="color:var(--text-muted)">Loading...</p>
     </div>
 
-    <script src="../js/storage.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/app.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
     <script>
         function pageInit() {
             renderSettingsPage();
@@ -29,6 +29,7 @@
             const marks = getData(KEYS.MARKS);
             const attendance = getData(KEYS.ATTENDANCE);
             const activity = getData(KEYS.ACTIVITY);
+            const session = getSession();
 
             let totalSize = 0;
             Object.values(KEYS).forEach(key => {
@@ -38,119 +39,286 @@
             const sizeKB = (totalSize / 1024).toFixed(1);
 
             const container = document.getElementById('main-content');
+            
+            const isStudentAccount = session.role === 'Student';
+            const studentData = isStudentAccount ? students.find(s => s.id === session.studentId) : null;
+
             container.innerHTML = `
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">Settings</h1>
-                        <p class="page-subtitle">System configuration and data management</p>
+                        <p class="page-subtitle">${isStudentAccount ? 'Manage your personal profile and account' : 'System configuration and data management'}</p>
                     </div>
                 </div>
 
                 <div class="settings-grid">
+                    <div class="card settings-card" style="grid-column: span 2; display: flex; align-items: center; gap: 32px; padding: 32px;">
+                        <div class="profile-setup">
+                            <div class="avatar-circle" style="width: 100px; height: 100px; font-size: 2.5rem; transition: var(--transition); border: 4px solid var(--border);" id="profile-preview">
+                                ${session.profilePic ? `<img src="${session.profilePic}" alt="Profile" class="avatar-img-round">` : (session.name || session.username).split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </div>
+                            <input type="file" id="profile-pic-input" style="display: none" accept="image/*" onchange="handleProfilePic(this)">
+                            <button class="btn btn-secondary btn-sm" style="margin-top: 16px; width: 100%" onclick="document.getElementById('profile-pic-input').click()">Change Picture</button>
+                        </div>
+                        <div style="flex:1">
+                            <h3 class="section-title" style="margin-bottom: 8px">My Profile</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 20px">Update your personal information below.</p>
+                            
+                            <form onsubmit="handleProfileUpdate(event)" class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" id="prof-name" value="${session.name || session.username}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>${isStudentAccount ? 'Email / Username' : 'Username / ID'}</label>
+                                    <input type="text" value="${session.username}" disabled style="cursor:not-allowed; background:var(--bg-base)">
+                                </div>
+                                ${isStudentAccount ? `
+                                <div class="form-group">
+                                    <label>Parent Contact</label>
+                                    <input type="text" id="prof-contact" value="${studentData ? (studentData.parentContact || '') : ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email Address</label>
+                                    <input type="email" id="prof-email" value="${studentData ? (studentData.email || '') : ''}" disabled style="cursor:not-allowed; background:var(--bg-base)">
+                                    <small style="color:var(--text-muted); font-size:0.7rem">Contact admin to change email</small>
+                                </div>
+                                ` : ''}
+                                <div class="full-width" style="margin-top:12px">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    ${!isStudentAccount ? `
                     <div class="card settings-card">
                         <h3 class="section-title">📊 Data Overview</h3>
                         <div class="settings-stats">
-                            <div class="settings-stat-item">
-                                <span class="settings-stat-label">Students</span>
-                                <span class="settings-stat-value">${students.length}</span>
-                            </div>
-                            <div class="settings-stat-item">
-                                <span class="settings-stat-label">Marks Entries</span>
-                                <span class="settings-stat-value">${marks.length}</span>
-                            </div>
-                            <div class="settings-stat-item">
-                                <span class="settings-stat-label">Attendance Records</span>
-                                <span class="settings-stat-value">${attendance.length}</span>
-                            </div>
-                            <div class="settings-stat-item">
-                                <span class="settings-stat-label">Activity Logs</span>
-                                <span class="settings-stat-value">${activity.length}</span>
-                            </div>
-                            <div class="settings-stat-item">
-                                <span class="settings-stat-label">Storage Used</span>
-                                <span class="settings-stat-value">${sizeKB} KB</span>
-                            </div>
+                            <div class="settings-stat-item"><span class="settings-stat-label">Students</span><span class="settings-stat-value">${students.length}</span></div>
+                            <div class="settings-stat-item"><span class="settings-stat-label">Marks Entries</span><span class="settings-stat-value">${marks.length}</span></div>
+                            <div class="settings-stat-item"><span class="settings-stat-label">Attendance Records</span><span class="settings-stat-value">${attendance.length}</span></div>
+                            <div class="settings-stat-item"><span class="settings-stat-label">Activity Logs</span><span class="settings-stat-value">${activity.length}</span></div>
+                            <div class="settings-stat-item"><span class="settings-stat-label">Storage Used</span><span class="settings-stat-value">${sizeKB} KB</span></div>
                         </div>
                     </div>
 
                     <div class="card settings-card">
                         <h3 class="section-title">📤 Export Data (CSV)</h3>
-                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Export your data as CSV files for use in Excel, Google Sheets, or other applications.</p>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Export your data as CSV files for analysis.</p>
                         <div class="settings-actions">
-                            <button class="btn btn-secondary" onclick="exportStudentsCSV()">
-                                ${SVG_ICONS.download} <span>Export Students</span>
-                            </button>
-                            <button class="btn btn-secondary" onclick="exportMarksCSV()">
-                                ${SVG_ICONS.download} <span>Export Marks</span>
-                            </button>
-                            <button class="btn btn-secondary" onclick="exportAttendanceCSV()">
-                                ${SVG_ICONS.download} <span>Export Attendance</span>
-                            </button>
+                            <button class="btn btn-secondary" onclick="exportStudentsCSV()">${SVG_ICONS.download} <span>Export Students</span></button>
+                            <button class="btn btn-secondary" onclick="exportMarksCSV()">${SVG_ICONS.download} <span>Export Marks</span></button>
+                            <button class="btn btn-secondary" onclick="exportAttendanceCSV()">${SVG_ICONS.download} <span>Export Attendance</span></button>
                         </div>
                     </div>
 
                     <div class="card settings-card">
                         <h3 class="section-title">💾 Backup & Restore</h3>
-                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Create a full backup of all your data as a JSON file, or restore from a previous backup.</p>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Secure your data with physical backups.</p>
                         <div class="settings-actions">
-                            <button class="btn btn-primary" onclick="backupData()">
-                                ${SVG_ICONS.download} <span>Download Backup</span>
-                            </button>
-                            <button class="btn btn-secondary" onclick="restoreData()">
-                                ${SVG_ICONS.upload} <span>Restore from Backup</span>
-                            </button>
+                            <button class="btn btn-primary" onclick="backupData()">${SVG_ICONS.download} <span>Download Backup</span></button>
+                            <button class="btn btn-secondary" onclick="restoreData()">${SVG_ICONS.upload} <span>Restore Data</span></button>
                         </div>
-                        <div class="settings-note">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--accent-warning)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                            <span>Restoring from backup will <strong>replace</strong> all current data.</span>
-                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${!isStudentAccount ? `
+                    <div class="card settings-card">
+                        <h3 class="section-title">🔐 Security</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Keep your account secure with a strong password.</p>
+                        <form id="change-password-form" onsubmit="updatePassword(event)" style="display:flex; flex-direction:column; gap:12px">
+                            <div class="form-group" style="margin:0"><label style="font-size:0.75rem">Current Password</label><input type="password" id="cp-current" required placeholder="Current password"></div>
+                            <div class="form-group" style="margin:0"><label style="font-size:0.75rem">New Password</label><input type="password" id="cp-new" required placeholder="8-12 chars"></div>
+                            <div class="form-group" style="margin:0"><label style="font-size:0.75rem">Confirm Password</label><input type="password" id="cp-confirm" required placeholder="Confirm new password"></div>
+                            <button type="submit" class="btn btn-primary" style="margin-top:8px">Update Password</button>
+                        </form>
                     </div>
 
                     <div class="card settings-card">
-                        <h3 class="section-title">🔐 Login Credentials</h3>
-                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Current system credentials (hardcoded for demo purposes):</p>
+                        <h3 class="section-title">🗝️ Access Matrix</h3>
                         <div class="credentials-display">
-                            <div class="credential-row">
-                                <span class="badge badge-primary">Teacher</span>
-                                <code>teacher</code> / <code>teacher123</code>
-                            </div>
-                            <div class="credential-row">
-                                <span class="badge badge-info">Student</span>
-                                <span style="color:var(--text-secondary)">Login via Class + Section + Roll Number</span>
-                            </div>
+                            <div class="credential-row"><span class="badge badge-primary">Staff</span> <code>staff / staff123</code></div>
                         </div>
                     </div>
 
                     <div class="card settings-card">
-                        <h3 class="section-title">🔄 Data Management</h3>
-                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">Reset or reseed your data. Use with caution.</p>
+                        <h3 class="section-title">🔄 Maintenance</h3>
+                        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px">System reset options.</p>
                         <div class="settings-actions">
-                            <button class="btn btn-secondary" onclick="reseedData()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                                <span>Reseed Sample Data</span>
-                            </button>
-                            <button class="btn btn-danger-outline" onclick="resetAllData()">
-                                ${SVG_ICONS.trash} <span>Reset All Data</span>
-                            </button>
-                        </div>
-                        <div class="settings-note" style="border-color:var(--accent-danger)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--accent-danger)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                            <span>Resetting will <strong>permanently delete</strong> all data. This cannot be undone.</span>
+                            <button class="btn btn-secondary" onclick="reseedData()">Reseed Data</button>
+                            <button class="btn btn-danger-outline" onclick="resetAllData()">Reset All</button>
                         </div>
                     </div>
+                    ` : ''}
 
                     <div class="card settings-card">
-                        <h3 class="section-title">ℹ️ About UPAY NGO, Nagpur</h3>
+                        <h3 class="section-title">ℹ️ Information</h3>
                         <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.8">
-                            <p><strong style="color:var(--text-primary)">UPAY NGO, Nagpur</strong> — Student Progress Management System</p>
+                            <p><strong style="color:var(--text-primary)">UPAY NGO, Nagpur</strong> — HMS</p>
                             <p>Version: <code>1.0.0</code></p>
-                            <p>Built with: HTML5, CSS3, Vanilla JavaScript</p>
-                            <p>Data Storage: Browser localStorage</p>
-                            <p>Charts: Chart.js (CDN)</p>
-                            <p style="margin-top:12px;color:var(--text-muted)">© 2025 UPAY NGO, Nagpur — Academic Management System</p>
+                            <p style="margin-top:12px;color:var(--text-muted)">© 2026 UPAY NGO, Nagpur</p>
                         </div>
                     </div>
                 </div>`;
+        }
+
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            const session = getSession();
+            const newName = document.getElementById('prof-name').value;
+            
+            session.name = newName;
+            setSession(session);
+
+            if (session.role === 'Student') {
+                const students = getData(KEYS.STUDENTS);
+                const idx = students.findIndex(s => s.id === session.studentId);
+                if (idx !== -1) {
+                    students[idx].name = newName;
+                    students[idx].parentContact = document.getElementById('prof-contact').value;
+                    // Email skipped as per user request (locked for students)
+                    setData(KEYS.STUDENTS, students);
+                }
+            } else if (session.staffId) {
+                const staff = getData(KEYS.STAFF);
+                const idx = staff.findIndex(s => s.id === session.staffId);
+                if (idx !== -1) {
+                    staff[idx].name = newName;
+                    setData(KEYS.STAFF, staff);
+                }
+            } else {
+                const users = getData(KEYS.USERS);
+                const idx = users.findIndex(u => u.username === session.username);
+                if (idx !== -1) {
+                    users[idx].name = newName;
+                    setData(KEYS.USERS, users);
+                }
+            }
+
+            showToast('Profile updated successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        function handleProfilePic(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (file.size > 1024 * 1024) {
+                showToast('Image size should be less than 1MB', 'warning');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                const session = getSession();
+                session.profilePic = base64;
+                setSession(session);
+
+                if (session.role === 'Student') {
+                    const students = getData(KEYS.STUDENTS);
+                    const idx = students.findIndex(s => s.id === session.studentId);
+                    if (idx !== -1) {
+                        students[idx].profilePic = base64;
+                        setData(KEYS.STUDENTS, students);
+                    }
+                } else if (session.staffId) {
+                    const staff = getData(KEYS.STAFF);
+                    const idx = staff.findIndex(s => s.id === session.staffId);
+                    if (idx !== -1) {
+                        staff[idx].profilePic = base64;
+                        setData(KEYS.STAFF, staff);
+                    }
+                } else {
+                    const users = getData(KEYS.USERS);
+                    const idx = users.findIndex(u => u.username === session.username);
+                    if (idx !== -1) {
+                        users[idx].profilePic = base64;
+                        setData(KEYS.USERS, users);
+                    }
+                }
+
+                document.getElementById('profile-preview').innerHTML = `<img src="${base64}" alt="Profile" class="avatar-img-round">`;
+                showToast('Profile picture updated!', 'success');
+                
+                const headerAvatar = document.querySelector('.header-user .avatar-circle');
+                if (headerAvatar) {
+                    headerAvatar.innerHTML = `<img src="${base64}" alt="Profile" class="avatar-img-round">`;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updatePassword(e) {
+            e.preventDefault();
+            const current = document.getElementById('cp-current').value;
+            const newPw = document.getElementById('cp-new').value;
+            const confirm = document.getElementById('cp-confirm').value;
+
+            if (newPw !== confirm) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+
+            const session = getSession();
+            
+            // Password Policy Check
+            const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,12}$/;
+            if (!pwRegex.test(newPw)) {
+                showToast('Password must be 8-12 characters and include uppercase, lowercase, number, and special character.', 'error');
+                return;
+            }
+
+            let updated = false;
+
+            if (session.role === 'Student') {
+                const students = getData(KEYS.STUDENTS);
+                const idx = students.findIndex(s => s.id === session.studentId);
+                if (idx >= 0) {
+                    if (students[idx].password !== current) {
+                        showToast('Current password is incorrect', 'error');
+                        return;
+                    }
+                    students[idx].password = newPw;
+                    setData(KEYS.STUDENTS, students);
+                    updated = true;
+                }
+            } else if (session.staffId) {
+                // Change for Staff member
+                const staff = getData(KEYS.STAFF);
+                const idx = staff.findIndex(s => s.id === session.staffId);
+                if (idx >= 0) {
+                    if (staff[idx].password !== current) {
+                        showToast('Current password is incorrect', 'error');
+                        return;
+                    }
+                    staff[idx].password = newPw;
+                    setData(KEYS.STAFF, staff);
+                    updated = true;
+                }
+            } else {
+                // Change for regular Admin/SuperAdmin
+                const users = getData(KEYS.USERS);
+                const idx = users.findIndex(u => u.username === session.username);
+                if (idx >= 0) {
+                    if (users[idx].password !== current) {
+                        showToast('Current password is incorrect', 'error');
+                        return;
+                    }
+                    users[idx].password = newPw;
+                    setData(KEYS.USERS, users);
+                    updated = true;
+                }
+            }
+
+            if (updated) {
+                showToast('Password updated successfully!', 'success');
+                e.target.reset();
+                logActivity('Password was changed');
+            } else {
+                showToast('Failed to update password. User not found.', 'error');
+            }
         }
 
         function reseedData() {

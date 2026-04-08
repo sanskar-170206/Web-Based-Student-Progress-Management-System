@@ -19,10 +19,11 @@
             min-height: 100vh;
             background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 50%, #f5f0ff 100%);
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            padding: 20px;
-            overflow: hidden;
+            padding: 40px 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         body::before {
@@ -49,10 +50,11 @@
             width: 100%;
             max-width: 960px;
             min-height: 540px;
+            margin: auto;
             background: #fff;
             border-radius: 28px;
             box-shadow: 0 24px 80px rgba(99,102,241,0.14), 0 4px 24px rgba(0,0,0,0.08);
-            overflow: visible;
+            overflow: hidden;
             position: relative;
         }
 
@@ -81,7 +83,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 48px 40px 40px;
+            padding: 40px;
             position: relative;
             background: #fff;
             border-radius: 28px;
@@ -138,12 +140,14 @@
 
         .login-card {
             width: 100%;
-            max-width: 360px;
+            max-width: 380px;
             border-radius: 16px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 8px 40px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.06);
             border: 1px solid #e8eaff;
             position: relative;
+            background: #fff;
+            flex-shrink: 0;
         }
 
         .login-card-header {
@@ -163,6 +167,24 @@
         .login-card-body {
             background: #fff;
             padding: 28px 28px 24px;
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #818cf8 #f1f3ff;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .login-card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .login-card-body::-webkit-scrollbar-track {
+            background: #f1f3ff;
+        }
+
+        .login-card-body::-webkit-scrollbar-thumb {
+            background-color: #818cf8;
+            border-radius: 10px;
         }
 
         .form-group-custom {
@@ -333,9 +355,33 @@
 
         .login-card.shake { animation: shake 0.4s ease; }
 
-        @media (max-width: 720px) {
-            .login-container { max-width: 420px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-            .login-right { padding: 36px 24px 28px; border-radius: 20px; }
+        @media (max-width: 850px) {
+            body { padding: 20px 15px; }
+            .login-container { 
+                flex-direction: column; 
+                max-width: 480px; 
+                min-height: auto;
+                border-radius: 24px;
+                margin: 20px auto;
+            }
+            .login-illustration { 
+                border-radius: 24px 24px 0 0; 
+                padding: 30px 20px;
+                min-height: 180px;
+            }
+            .login-illustration img { max-height: 150px; }
+            .login-right { 
+                padding: 30px 20px; 
+                border-radius: 0 0 24px 24px;
+            }
+            .login-card { max-width: 100%; }
+            .login-card-body { max-height: none; overflow-y: visible; }
+        }
+
+        @media (max-height: 700px) {
+            body { justify-content: flex-start; }
+            .login-container { margin-top: 20px; margin-bottom: 20px; }
+            .login-card-body { max-height: 320px; }
         }
     </style>
 </head>
@@ -353,7 +399,7 @@
             <div class="role-tabs-wrapper">
                 <div class="role-tabs" id="role-tabs">
                     <button class="role-tab" data-role="Student" onclick="selectRole(this)">Student</button>
-                    <button class="role-tab active" data-role="Admin" onclick="selectRole(this)">Teacher</button>
+                    <button class="role-tab active" data-role="Admin" onclick="selectRole(this)">Staff</button>
                     <button class="role-tab" data-role="SuperAdmin" onclick="selectRole(this)">Admin</button>
                 </div>
             </div>
@@ -454,7 +500,7 @@
                 </div>
             </div>
 
-            <div class="login-footer">© 2025 UPAY NGO, Nagpur — Academic Management System</div>
+            <div class="login-footer">© 2026 UPAY NGO, Nagpur — Academic Management System</div>
 
 
         </div>
@@ -467,7 +513,7 @@
         (function () {
             const session = getSession();
             if (session && session.loggedIn) {
-                window.location.href = 'pages/dashboard.html';
+                window.location.href = './dashboard.html';
             }
         })();
 
@@ -509,9 +555,9 @@
             const username = document.getElementById('admin-username').value.trim();
             const password = document.getElementById('admin-password').value;
             if (attemptAdminLogin(username, password, 'Admin')) {
-                window.location.href = 'pages/dashboard.html';
+                window.location.href = './dashboard.html';
             } else {
-                document.getElementById('admin-error').textContent = 'Invalid Teacher credentials.';
+                document.getElementById('admin-error').textContent = 'Invalid Staff credentials.';
                 shakeCard();
             }
         }
@@ -521,7 +567,7 @@
             const username = document.getElementById('superadmin-username').value.trim();
             const password = document.getElementById('superadmin-password').value;
             if (attemptAdminLogin(username, password, 'SuperAdmin')) {
-                window.location.href = 'pages/dashboard.html';
+                window.location.href = './dashboard.html';
             } else {
                 document.getElementById('superadmin-error').textContent = 'Invalid Admin credentials.';
                 shakeCard();
@@ -542,7 +588,7 @@
             }
 
             if (attemptStudentLogin(cls, section, rollNo, password)) {
-                window.location.href = 'pages/dashboard.html';
+                window.location.href = './dashboard.html';
             } else {
                 document.getElementById('student-error').textContent = 'Invalid Student credentials.';
                 shakeCard();

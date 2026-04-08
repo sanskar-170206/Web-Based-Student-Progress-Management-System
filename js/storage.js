@@ -4,7 +4,10 @@ const KEYS = {
     MARKS: 'edutrack_marks',
     ATTENDANCE: 'edutrack_attendance',
     ACTIVITY: 'edutrack_activity_log',
-    USERS: 'edutrack_users'
+    USERS: 'edutrack_users',
+    STAFF: 'edutrack_staff',
+    STAFF_ATTENDANCE: 'edutrack_staff_attendance',
+    ACTIVITIES: 'edutrack_activities'
 };
 
 function getData(key) {
@@ -66,11 +69,14 @@ function calcGrade(percentage) {
 }
 
 function seedData() {
-    if (localStorage.getItem('upay_initialized') === 'dummy_seeded_v6') return;
+    if (localStorage.getItem('upay_initialized') === 'dummy_seeded_v7') return;
     
     const dummyStudents = [];
     const dummyMarks = [];
     const dummyAttendance = [];
+    const dummyStaff = [];
+    const dummyStaffAttendance = [];
+    const dummyActivities = [];
 
     const dummyUsers = [
         { id: generateId(), username: 'admin', password: 'Upay@2025Ngp', email: 'admin@upay.org', role: 'SuperAdmin', name: 'System Administrator', createdAt: new Date().toISOString() }
@@ -80,12 +86,15 @@ function seedData() {
     setData(KEYS.STUDENTS, dummyStudents);
     setData(KEYS.MARKS, dummyMarks);
     setData(KEYS.ATTENDANCE, dummyAttendance);
+    setData(KEYS.STAFF, dummyStaff);
+    setData(KEYS.STAFF_ATTENDANCE, dummyStaffAttendance);
+    setData(KEYS.ACTIVITIES, dummyActivities);
     setData(KEYS.ACTIVITY, [
         { message: 'System initialized with clean database.', timestamp: new Date().toISOString() },
         { message: 'UPAY NGO Portal active.', timestamp: new Date().toISOString() }
     ]);
     
-    localStorage.setItem('upay_initialized', 'dummy_seeded_v6');
+    localStorage.setItem('upay_initialized', 'dummy_seeded_v7');
 }
 
 seedData();

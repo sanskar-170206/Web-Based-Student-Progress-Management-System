@@ -6,20 +6,31 @@ function checkAuth() {
 
     if (!session || !session.loggedIn) {
         if (!isLoginPage && !isIndexPage) {
-            window.location.href = '../login.html';
+            window.location.href = 'login.html';
         }
         return false;
     }
     return true;
 }
-
-function attemptAdminLogin(username, password, expectedRole = 'Admin') {
+function attemptAdminLogin(input, password, expectedRole = 'Admin') {
+    // 1. Check in regular users (System Admins / Hardcoded Teachers)
     const users = getData(KEYS.USERS);
-    const user = users.find(u => u.username === username && u.password === password && u.role === expectedRole);
+    const user = users.find(u => (u.username === input || u.email === input) && u.password === password && u.role === expectedRole);
     if (user) {
-        setSession({ username: user.username, role: user.role, name: user.name, loggedIn: true });
+        setSession({ username: user.username, role: user.role, name: user.name, profilePic: user.profilePic || null, loggedIn: true });
         return true;
     }
+
+    // 2. Check in Staff if role is 'Admin' (mapped to Staff in UI)
+    if (expectedRole === 'Admin') {
+        const staff = getData(KEYS.STAFF);
+        const member = staff.find(s => (s.username === input || s.email === input) && s.password === password);
+        if (member) {
+            setSession({ username: member.username, role: 'Admin', name: member.name, profilePic: member.profilePic || null, loggedIn: true, staffId: member.id });
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -36,7 +47,8 @@ function attemptStudentLogin(cls, section, rollNo, password) {
             studentId: student.id,
             studentRollNo: student.rollNo,
             studentClass: student.class,
-            studentSection: student.section
+            studentSection: student.section,
+            profilePic: student.profilePic || null
         });
         return true;
     }

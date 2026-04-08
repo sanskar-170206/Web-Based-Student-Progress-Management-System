@@ -22,16 +22,7 @@ function renderAdminPage() {
                 <h1 class="page-title">Admin Panel</h1>
                 <p class="page-subtitle">System Administration & Access Management</p>
             </div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <button class="btn btn-secondary pulse-on-hover" onclick="openQuickStudentModal()">
-                    ${SVG_ICONS.user} <span>Add Student</span>
-                </button>
-                <button class="btn btn-primary pulse-on-hover" onclick="openAddTeacherModal()">
-                    ${SVG_ICONS.plus} <span>Add Teacher</span>
-                </button>
-            </div>
         </div>
-        
         <div class="stats-grid mb-20 fade-in-up delay-200">
             <div class="stat-card blue hover-lift">
                 <div class="stat-icon">${SVG_ICONS.award}</div>
@@ -47,11 +38,6 @@ function renderAdminPage() {
                 <div class="stat-icon">${SVG_ICONS.analytics}</div>
                 <div class="stat-label">System Logs</div>
                 <div class="stat-value counter-animate">${getData(KEYS.ACTIVITY).length}</div>
-            </div>
-            <div class="stat-card purple hover-lift">
-                <div class="stat-icon">${SVG_ICONS.settings}</div>
-                <div class="stat-label">System State</div>
-                <div class="stat-value" style="font-size:1.2rem;margin-top:12px;">Active</div>
             </div>
         </div>
 
@@ -123,7 +109,7 @@ function getTeacherFormHTML(teacher = null) {
                 </div>
                 <div class="form-group full-width">
                     <label>Email Address <span class="required">*</span></label>
-                    <input type="email" id="tf-email" value="${isEdit ? (teacher.email || '') : ''}" required placeholder="teacher@gmail.com" pattern=".*@gmail\.com" title="Please enter a valid @gmail.com address">
+                    <input type="email" id="tf-email" value="${isEdit ? (teacher.email || '') : ''}" required placeholder="teacher@gmail.com" pattern=".*(@gmail\.com|@\.in)" title="Please enter a valid @gmail.com or @.in address">
                 </div>
                 <div class="form-group full-width">
                     <label>Username <span class="required">*</span></label>
@@ -182,8 +168,8 @@ function saveTeacher(event, editId) {
         return;
     }
 
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-        showToast('Only @gmail.com email addresses are allowed', 'error'); return;
+    if (email && !email.toLowerCase().endsWith('@gmail.com') && !email.toLowerCase().endsWith('@.in')) {
+        showToast('Only @gmail.com or @.in email addresses are allowed', 'error'); return;
     }
     
     let users = getData(KEYS.USERS);
@@ -273,7 +259,7 @@ function openQuickStudentModal() {
                 </div>
                 <div class="form-group">
                     <label>Email <span class="required">*</span></label>
-                    <input type="email" id="sf-email" required placeholder="student@gmail.com" pattern=".*@gmail\.com" title="Please enter a valid @gmail.com address">
+                    <input type="email" id="sf-email" required placeholder="student@gmail.com" pattern=".*(@gmail\.com|@\.in)" title="Please enter a valid @gmail.com or @.in address">
                 </div>
                 <div class="form-group">
                     <label>Password <span class="required">*</span></label>
@@ -304,8 +290,8 @@ function saveQuickStudent(event) {
         showToast('Please fill all required fields', 'error'); return;
     }
 
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-        showToast('Only @gmail.com email addresses are allowed', 'error'); return;
+    if (email && !email.toLowerCase().endsWith('@gmail.com') && !email.toLowerCase().endsWith('@.in')) {
+        showToast('Only @gmail.com or @.in email addresses are allowed', 'error'); return;
     }
 
     const students = getData(KEYS.STUDENTS);

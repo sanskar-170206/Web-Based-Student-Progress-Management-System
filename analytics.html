@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="UPAY NGO, Nagpur Analytics — Detailed performance analytics and comparisons.">
     <title>Analytics — UPAY NGO, Nagpur</title>
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-<link rel="icon" type="image/png" href="../assets/upay_logo.png">
+<link rel="icon" type="image/png" href="assets/upay_logo.png">
 </head>
 <body>
     <div id="main-content" class="fade-in-up">
         <p style="color:var(--text-muted)">Loading...</p>
     </div>
 
-    <script src="../js/storage.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/app.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
     <script>
         function pageInit() {
             renderAnalyticsPage();
@@ -127,8 +127,24 @@
                         <div class="chart-container"><canvas id="subjectDiffChart"></canvas></div>
                     </div>
                     <div class="chart-card hover-lift">
-                        <h3>Score Distribution (All Students)</h3>
-                        <div class="chart-container"><canvas id="scoreDistChart"></canvas></div>
+                        <h3>Attendance Rate by Class</h3>
+                        <div class="chart-container"><canvas id="classAttendanceChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card hover-lift mb-20 fade-in-up delay-750" style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h3 class="section-title" style="margin:0">🔍 Class-Specific Deep Dive</h3>
+                        <div style="display:flex; align-items:center; gap:12px; background:var(--bg-surface); padding:8px 16px; border-radius:var(--radius-md); border:1px solid var(--accent-primary)">
+                            <label style="font-size:0.9rem; font-weight:600; color:var(--accent-primary); white-space:nowrap">Select Class:</label>
+                            <select id="class-drilldown-select" class="form-control" style="width:150px; background:var(--bg-surface); border:none; color:var(--text-primary); cursor:pointer; font-weight:500; outline:none" onchange="updateClassDrilldown()">
+                                ${[...new Set(students.map(s => s.class))].sort((a,b)=>a-b).map(c => `<option value="${c}" style="background:var(--bg-surface);color:var(--text-primary)">Class ${c}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="class-drilldown-content" class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <!-- Dynamic Content -->
                     </div>
                 </div>
 
@@ -170,10 +186,71 @@
                     </div>
                 </div>`;
 
-            renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentFinalAvgs);
+            renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentFinalAvgs, attendance);
+            updateClassDrilldown();
         }
 
-        function renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentAvgs) {
+        function updateClassDrilldown() {
+            const classVal = document.getElementById('class-drilldown-select').value;
+            const students = getData(KEYS.STUDENTS);
+            const marks = getData(KEYS.MARKS);
+            const attendance = getData(KEYS.ATTENDANCE);
+
+            const filteredStudents = students.filter(s => s.class == classVal);
+            if (filteredStudents.length === 0) return;
+
+            let totalDays = 0, presentDays = 0;
+            attendance.forEach(a => {
+                a.records.forEach(r => {
+                    if (filteredStudents.some(s => s.id === r.studentId)) {
+                        totalDays++;
+                        if (r.status === 'Present') presentDays++;
+                    }
+                });
+            });
+            const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+            let totalScore = 0, examCount = 0;
+            const classStudentIds = filteredStudents.map(s => s.id);
+            const classMarks = marks.filter(m => classStudentIds.includes(m.studentId));
+            classMarks.forEach(m => {
+                totalScore += m.percentage;
+                examCount++;
+            });
+            const avgScore = examCount > 0 ? (totalScore / examCount).toFixed(1) : 0;
+
+            let topStudent = null, topAvg = -1;
+            filteredStudents.forEach(s => {
+                const sMarks = marks.filter(m => m.studentId === s.id);
+                const sAvg = sMarks.length > 0 ? sMarks.reduce((sum, m) => sum + m.percentage, 0) / sMarks.length : 0;
+                if (sAvg > topAvg) {
+                    topAvg = sAvg;
+                    topStudent = s;
+                }
+            });
+
+            const content = document.getElementById('class-drilldown-content');
+            content.innerHTML = `
+                <div class="stat-card blue">
+                    <div class="stat-label">Avg Attendance</div>
+                    <div class="stat-value">${attendanceRate}%</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Average Score</div>
+                    <div class="stat-value">${avgScore}%</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Top Performer</div>
+                    <div style="margin-top:8px">
+                        ${topStudent ? `
+                            <div style="font-weight:600; font-size:1.1rem; color:var(--text-primary)">${topStudent.name}</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary)">Score: ${topAvg.toFixed(1)}%</div>
+                        `: 'N/A'}
+                    </div>
+                </div>`;
+        }
+
+        function renderAnalyticsCharts(classGroups, passCount, failCount, subjectStats, studentAvgs, attendance) {
             const classLabels = Object.keys(classGroups).sort();
             const classAvgs = classLabels.map(cls => {
                 const m = classGroups[cls].marks;
@@ -197,62 +274,35 @@
                     responsive: true, maintainAspectRatio: true, cutout: '60%', 
                     plugins: { 
                         legend: { position: 'bottom', labels: { color: '#8B949E', padding: 16 } },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 14 },
-                            formatter: (value) => {
-                                const pct = totalResults > 0 ? Math.round((value / totalResults) * 100) : 0;
-                                return pct > 0 ? pct + '%' : '';
-                            }
-                        }
+                        datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (value) => { const pct = totalResults > 0 ? Math.round((value / totalResults) * 100) : 0; return pct > 0 ? pct + '%' : ''; } }
                     } 
                 }
             });
 
             const subjects = Object.keys(subjectStats);
             const avgBySubject = subjects.map(s => parseFloat((subjectStats[s].scores.reduce((a, b) => a + b, 0) / subjectStats[s].scores.length).toFixed(1)));
-
             new Chart(document.getElementById('subjectDiffChart'), {
                 type: 'radar',
                 data: { labels: subjects, datasets: [{ label: 'Avg Score %', data: avgBySubject, backgroundColor: 'rgba(59,130,246,0.2)', borderColor: '#3B82F6', pointBackgroundColor: '#3B82F6', borderWidth: 2, pointRadius: 5 }] },
                 options: { responsive: true, maintainAspectRatio: true, scales: { r: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E', backdropColor: 'transparent' }, pointLabels: { color: '#8B949E' } } }, plugins: { legend: { display: false } } }
             });
 
-            const buckets = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
-            studentAvgs.forEach(s => {
-                if (s.avg <= 20) buckets['0-20']++;
-                else if (s.avg <= 40) buckets['21-40']++;
-                else if (s.avg <= 60) buckets['41-60']++;
-                else if (s.avg <= 80) buckets['61-80']++;
-                else buckets['81-100']++;
+            const classAttendanceData = {};
+            classLabels.forEach(clsLabel => {
+                const classStudents = getData(KEYS.STUDENTS).filter(s => `${s.class}-${s.section}` === clsLabel);
+                let t = 0, p = 0;
+                attendance.forEach(a => {
+                    a.records.forEach(r => {
+                        if (classStudents.some(s => s.id === r.studentId)) { t++; if (r.status === 'Present') p++; }
+                    });
+                });
+                classAttendanceData[clsLabel] = t > 0 ? Math.round((p / t) * 100) : 0;
             });
 
-            const totalStudentsCount = Object.values(buckets).reduce((a, b) => a + b, 0);
-            new Chart(document.getElementById('scoreDistChart'), {
+            new Chart(document.getElementById('classAttendanceChart'), {
                 type: 'bar',
-                plugins: [ChartDataLabels],
-                data: { 
-                    labels: Object.keys(buckets).map(k => `${k} (${totalStudentsCount > 0 ? Math.round((buckets[k] / totalStudentsCount) * 100) : 0}%)`), 
-                    datasets: [{ label: 'Students', data: Object.values(buckets), backgroundColor: ['rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)', 'rgba(59,130,246,0.7)', 'rgba(139,92,246,0.7)', 'rgba(16,185,129,0.7)'], borderRadius: 6, barThickness: 40 }] 
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: true, 
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'top',
-                            color: '#fff',
-                            offset: -2,
-                            font: { weight: 'bold', size: 10 },
-                            formatter: (value) => {
-                                const pct = totalStudentsCount > 0 ? Math.round((value / totalStudentsCount) * 100) : 0;
-                                return pct > 0 ? pct + '%' : '';
-                            }
-                        }
-                    }, 
-                    scales: { y: { beginAtZero: true, grid: { color: '#30363D' }, ticks: { color: '#8B949E', stepSize: 1 } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } 
-                }
+                data: { labels: classLabels.map(c => 'Class ' + c), datasets: [{ label: 'Attendance %', data: classLabels.map(c => classAttendanceData[c]), backgroundColor: 'rgba(59,130,246,0.6)', borderColor: '#3B82F6', borderWidth: 1, borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }, x: { grid: { display: false }, ticks: { color: '#8B949E' } } } }
             });
         }
 
@@ -260,6 +310,3 @@
     </script>
 </body>
 </html>
-
-
-
