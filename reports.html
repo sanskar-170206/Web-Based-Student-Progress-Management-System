@@ -217,10 +217,15 @@
 
                     <div class="report-remarks">"${remarks}"</div>
 
-                    <div class="no-print" style="margin-top:24px;text-align:center">
+                    <div class="no-print" style="margin-top:24px;text-align:center; display:flex; justify-content:center; gap: 16px;">
                         <button class="btn btn-primary" onclick="window.print()">
                             ${SVG_ICONS.print} Print Report Card
                         </button>
+                        ${passStatus ? `
+                            <button class="btn btn-success" onclick="window.open('certificate.html?student=${studentId}', '_blank')">
+                                🎓 Generate Certificate
+                            </button>
+                        ` : ''}
                     </div>
                 </div>`;
         }

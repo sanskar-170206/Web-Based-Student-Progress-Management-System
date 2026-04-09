@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="UPAY NGO, Nagpur — Student Certificate of Excellence">
+    <title>Certificate — UPAY NGO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="assets/upay_logo.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .cert-container { 
+            width: 1000px; height: 700px;
+            background: #fff;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .cert-border {
+            position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px;
+            border: 12px double #ceaa56;
+            padding: 40px; text-align: center;
+        }
+        .cert-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.03; pointer-events: none;
+            background-image: url('assets/upay_logo.png'); background-position: center; background-size: 50%; background-repeat: no-repeat;
+        }
+        .cert-header {
+            display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;
+        }
+        .cert-logo { width: 100px; }
+        h1 { font-family: 'Cinzel', serif; color: #1a365d; font-size: 3.5rem; letter-spacing: 2px; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2rem; color: #ceaa56; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 40px; }
+        .text-body { font-size: 1.1rem; color: #4a5568; line-height: 1.8; margin-bottom: 30px; }
+        .student-name { font-family: 'Cinzel', serif; font-size: 2.8rem; color: #2b6cb0; margin: 20px 0; border-bottom: 2px solid #e2e8f0; display: inline-block; padding: 0 40px 10px; }
+        .details { font-size: 1.2rem; margin: 20px 0 50px; color: #2d3748; font-weight: 500;}
+        .signature-section { display: flex; justify-content: space-between; padding: 0 60px; margin-top: 60px; }
+        .signature-box { text-align: center; width: 200px; }
+        .signature-line { border-bottom: 2px solid #4a5568; display: block; margin-bottom: 10px; height: 40px; }
+        .no-print-bar { position: fixed; bottom: 20px; background: #fff; padding: 15px 30px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; }
+        .btn { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1rem; }
+        .btn:hover { background: #4338ca; }
+        .btn-danger { background: #e11d48; }
+        .btn-danger:hover { background: #be123c; }
+        @media print {
+            body { background: none; padding: 0;}
+            .no-print-bar { display: none !important; }
+            .cert-container { width: 100%; height: 100vh; box-shadow: none; page-break-after: avoid; }
+            @page { size: landscape; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print-bar">
+        <button class="btn" onclick="window.print()">🖨️ Print Certificate</button>
+        <button class="btn btn-danger" onclick="window.close()">Close Check</button>
+    </div>
+
+    <div class="cert-container" id="cert">
+        <div class="cert-bg"></div>
+        <div class="cert-border">
+            <div class="cert-header">
+                <div style="width:100px;"></div>
+                <img src="assets/upay_logo.png" alt="UPAY NGO" class="cert-logo">
+                <div style="width:100px; text-align:right">
+                    <div style="width:60px; height:60px; background:#ceaa56; border-radius:50%; margin-left:auto; display:flex; align-items:center; justify-content:center; color:white; font-size:24px;">🎖️</div>
+                </div>
+            </div>
+            
+            <h1>Certificate of Excellence</h1>
+            <div class="subtitle">UPAY NGO ACADEMIC PROGRAM</div>
+            
+            <div class="text-body">
+                This is to proudly certify that
+            </div>
+            
+            <div class="student-name" id="c-name">Loading...</div>
+            
+            <div class="text-body">
+                has successfully completed the academic program for the session <span style="font-weight:600" id="c-year">2026</span> <br>
+                and has demonstrated outstanding performance, active participation, and a strong commitment to learning.
+            </div>
+            
+            <div class="details">
+                Class: <span id="c-class">-</span>-<span id="c-section">-</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+                Roll Number: <span id="c-roll">---</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+                Overall Performance Grade: <span id="c-grade" style="color: #ceaa56; font-size: 1.5rem; font-family:'Cinzel', serif">---</span>
+            </div>
+            
+            <div class="signature-section">
+                <div class="signature-box">
+                    <span class="signature-line"></span>
+                    <p style="font-weight: 500">Center Mentor</p>
+                </div>
+                <div>
+                    <img src="assets/upay_logo.png" style="height:60px; opacity:0.4; filter:grayscale(1)">
+                </div>
+                <div class="signature-box">
+                    <span class="signature-line"></span>
+                    <p style="font-weight: 500">Board of Directors</p>
+                    <p style="font-size: 0.8rem; color:#718096">UPAY NGO, Nagpur</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const studentId = params.get('student');
+            if (!studentId) {
+                document.body.innerHTML = '<h2 style="text-align:center; font-family:sans-serif; margin-top:50px;">Student ID missing in URL. Navigate from Reports page.</h2>';
+                return;
+            }
+
+            const students = getData(KEYS.STUDENTS);
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                document.body.innerHTML = '<h2 style="text-align:center; font-family:sans-serif; margin-top:50px;">Student not found.</h2>';
+                return;
+            }
+
+            // Calculate grade
+            const marks = getData(KEYS.MARKS).filter(m => m.studentId === studentId);
+            const overallAvg = marks.length > 0 ? parseFloat((marks.reduce((s, m) => s + m.percentage, 0) / marks.length).toFixed(1)) : 0;
+            
+            let grade = 'E';
+            if (overallAvg >= 90) grade = 'A+';
+            else if (overallAvg >= 80) grade = 'A';
+            else if (overallAvg >= 70) grade = 'B+';
+            else if (overallAvg >= 60) grade = 'B';
+            else if (overallAvg >= 50) grade = 'C';
+            else if (overallAvg >= 40) grade = 'D';
+
+            document.getElementById('c-name').textContent = student.name;
+            document.getElementById('c-class').textContent = student.class;
+            document.getElementById('c-section').textContent = student.section;
+            document.getElementById('c-roll').textContent = student.rollNo;
+            document.getElementById('c-grade').textContent = grade;
+            document.getElementById('c-year').textContent = new Date().getFullYear();
+        });
+    </script>
+</body>
+</html>
