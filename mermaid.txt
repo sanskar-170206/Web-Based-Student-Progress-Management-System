@@ -1,0 +1,351 @@
+%% ============================================================
+%%  DIAGRAM 1 : High-Level System Architecture (flowchart TD)
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+flowchart TD
+    classDef userStyle    fill:#6C63FF,stroke:#4B44CC,color:#fff
+    classDef pageStyle    fill:#0F172A,stroke:#6C63FF,color:#E2E8F0
+    classDef storageStyle fill:#064E3B,stroke:#10B981,color:#D1FAE5
+    classDef logicStyle   fill:#1E3A5F,stroke:#38BDF8,color:#BAE6FD
+    classDef uiStyle      fill:#3B1F6A,stroke:#A855F7,color:#E9D5FF
+    classDef outputStyle  fill:#7C2D12,stroke:#F97316,color:#FFEDD5
+
+    BROWSER([Browser]):::userStyle --> IDX["index.html - Entry Redirect"]:::pageStyle
+    IDX --> LOGIN
+
+    subgraph AUTH ["Authentication Layer"]
+        LOGIN["login.html - Multi-Role Login"]:::pageStyle
+        APP["app.js - Core Auth Logic"]:::logicStyle
+        STG["storage.js - LocalStorage Wrapper"]:::storageStyle
+        LOGIN --> APP --> STG
+    end
+
+    STG -->|Role = Admin|   ADMIN_D["Admin Dashboard"]:::pageStyle
+    STG -->|Role = Staff|   STAFF_D["Staff Dashboard"]:::pageStyle
+    STG -->|Role = Student| STU_D["Student Dashboard"]:::pageStyle
+
+    subgraph ADMIN_ZONE ["Admin Zone"]
+        ADMIN_D --> ANA["analytics.html"]:::pageStyle
+        ADMIN_D --> STF["staff.html"]:::pageStyle
+        ADMIN_D --> SET["settings.html"]:::pageStyle
+        ADMIN_D --> RPT["reports.html"]:::pageStyle
+        ANA --> ADJ["admin.js"]:::logicStyle
+        STF --> ADJ
+        SET --> ADJ
+        RPT --> ADJ
+    end
+
+    subgraph STAFF_ZONE ["Staff Zone"]
+        STAFF_D --> ATT["attendance.html"]:::pageStyle
+        STAFF_D --> MRK["marks.html"]:::pageStyle
+        STAFF_D --> ACT["activities.html"]:::pageStyle
+        STAFF_D --> STU["students.html"]:::pageStyle
+        ATT --> SFJ["staff.js"]:::logicStyle
+        MRK --> SFJ
+        ACT --> SFJ
+        STU --> SFJ
+    end
+
+    subgraph STU_ZONE ["Student Zone"]
+        STU_D --> SRPT["My Report Card"]:::outputStyle
+        STU_D --> SATT["My Attendance"]:::outputStyle
+        STU_D --> SMRK["My Marks"]:::outputStyle
+    end
+
+    subgraph SHARED ["Shared JS Modules"]
+        UI_JS["ui.js - UI Interactions and Modals"]:::uiStyle
+        STG_JS["storage.js - getData and setData"]:::storageStyle
+    end
+
+    ADMIN_ZONE --> SHARED
+    STAFF_ZONE --> SHARED
+    STU_ZONE   --> SHARED
+
+    SHARED --> LS[("Browser LocalStorage - students, staff, marks, attendance, activities, session")]:::storageStyle
+
+
+%% ============================================================
+%%  DIAGRAM 2 : Data Flow - Mark Entry and Report Generation
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+sequenceDiagram
+    actor Teacher
+    participant MarksPage as marks.html
+    participant MarksJS as marks.js
+    participant StorageJS as storage.js
+    participant LS as LocalStorage
+    actor Student
+    participant Reports as reports.html
+
+    Teacher->>MarksPage: Open Marks Entry Page
+    MarksPage->>MarksJS: init()
+    MarksJS->>StorageJS: getData("students")
+    StorageJS->>LS: localStorage.getItem("students")
+    LS-->>StorageJS: JSON Array of Students
+    StorageJS-->>MarksJS: Student List
+    MarksJS-->>MarksPage: Render Class and Section Dropdown
+
+    Teacher->>MarksPage: Select Class and Enter Marks
+    MarksPage->>MarksJS: saveMarks(payload)
+    MarksJS->>StorageJS: setData("marks", payload)
+    StorageJS->>LS: localStorage.setItem("marks", JSON)
+    LS-->>StorageJS: Saved Successfully
+    MarksJS-->>MarksPage: Show Success Toast
+
+    Student->>Reports: Open Report Card Page
+    Reports->>StorageJS: getData("marks")
+    StorageJS->>LS: localStorage.getItem("marks")
+    LS-->>StorageJS: Marks JSON
+    StorageJS-->>Reports: Student Marks Data
+    Reports-->>Student: Render Report Card
+
+
+%% ============================================================
+%%  DIAGRAM 3 : Authentication Flow (stateDiagram-v2)
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+stateDiagram-v2
+    direction LR
+
+    [*] --> LandingPage : Open Application
+    LandingPage --> LoginForm : Redirect via index.html
+
+    LoginForm --> ValidatingCredentials : Submit Login Form
+
+    ValidatingCredentials --> AdminSession   : Role is ADMIN
+    ValidatingCredentials --> StaffSession   : Role is STAFF
+    ValidatingCredentials --> StudentSession : Role is STUDENT
+    ValidatingCredentials --> LoginForm      : Invalid Credentials
+
+    AdminSession   --> AdminDashboard   : Route to Admin Pages
+    StaffSession   --> StaffDashboard   : Route to Staff Pages
+    StudentSession --> StudentDashboard : Route to Student Pages
+
+    AdminDashboard   --> SessionExpired : Logout or Tab Close
+    StaffDashboard   --> SessionExpired : Logout or Tab Close
+    StudentDashboard --> SessionExpired : Logout or Tab Close
+
+    SessionExpired --> LoginForm : Redirect to Login
+    SessionExpired --> [*]
+
+
+%% ============================================================
+%%  DIAGRAM 4 : Component Architecture (classDiagram)
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+classDiagram
+    direction TB
+
+    class StorageModule {
+        -prefix : String
+        +getData(key) Object
+        +setData(key, value) void
+        +removeData(key) void
+        +clearAll() void
+    }
+
+    class UIModule {
+        +showToast(msg, type) void
+        +openModal(id) void
+        +closeModal(id) void
+        +toggleSidebar() void
+        +renderAvatar(base64) void
+        +updateTheme(mode) void
+    }
+
+    class AppModule {
+        -currentUser : Object
+        +initAuth() void
+        +getRole() String
+        +setSession(user) void
+        +logout() void
+    }
+
+    class AdminModule {
+        +loadDashboard() void
+        +manageStaff() void
+        +viewAnalytics(classId) void
+        +exportData() void
+        +resetStudent(id) void
+    }
+
+    class StaffModule {
+        +loadStudents(cls, section) Array
+        +saveMarks(payload) void
+        +markAttendance(date, data) void
+        +logActivity(entry) void
+        +generateReport(studentId) void
+    }
+
+    class MarksModule {
+        +renderMarkSheet(cls, section) void
+        +calculateGrade(score) String
+        +saveMarks(data) void
+        +getSubjects() Array
+    }
+
+    class AttendanceModule {
+        +markPresent(studentId) void
+        +markAbsent(studentId) void
+        +getAttendancePercent(id) Number
+        +exportAttendance(cls) void
+    }
+
+    class ActivitiesModule {
+        +addActivity(data) void
+        +deleteActivity(id) void
+        +filterByType(type) Array
+        +renderTimeline() void
+    }
+
+    class Student {
+        +id : String
+        +name : String
+        +rollNo : Number
+        +cls : String
+        +section : String
+        +password : String
+        +profilePic : String
+    }
+
+    class Staff {
+        +id : String
+        +name : String
+        +subject : String
+        +assignedClass : String
+        +password : String
+        +profilePic : String
+    }
+
+    AppModule --> StorageModule : uses
+    AppModule --> UIModule : uses
+    AdminModule --> StorageModule : reads and writes
+    AdminModule --> UIModule : renders
+    StaffModule --> StorageModule : reads and writes
+    StaffModule --> UIModule : renders
+    StaffModule --> MarksModule : delegates
+    StaffModule --> AttendanceModule : delegates
+    StaffModule --> ActivitiesModule : delegates
+    MarksModule --> StorageModule : reads and writes
+    AttendanceModule --> StorageModule : reads and writes
+    ActivitiesModule --> StorageModule : reads and writes
+    StorageModule "1" --> "many" Student : persists
+    StorageModule "1" --> "many" Staff : persists
+
+
+%% ============================================================
+%%  DIAGRAM 5 : LocalStorage Data Schema (erDiagram)
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+erDiagram
+    STUDENT {
+        string id          PK
+        string name
+        int    rollNo
+        string cls
+        string section
+        string password
+        string profilePic
+    }
+
+    STAFF {
+        string id           PK
+        string name
+        string subject
+        string assignedClass
+        string password
+        string profilePic
+    }
+
+    MARKS {
+        string id        PK
+        string studentId FK
+        string subject
+        int    score
+        int    maxScore
+        string grade
+        string term
+    }
+
+    ATTENDANCE {
+        string id        PK
+        string studentId FK
+        string date
+        string status
+        string cls
+    }
+
+    ACTIVITY {
+        string id          PK
+        string title
+        string type
+        string date
+        string description
+        string cls
+    }
+
+    SESSION {
+        string role
+        string userId
+        string name
+        string timestamp
+    }
+
+    SETTINGS {
+        string theme
+        string language
+        string adminPassword
+        string systemName
+    }
+
+    STUDENT ||--o{ MARKS       : "has"
+    STUDENT ||--o{ ATTENDANCE  : "recorded in"
+    STAFF   ||--o{ MARKS       : "enters"
+    STAFF   ||--o{ ATTENDANCE  : "marks"
+    STAFF   ||--o{ ACTIVITY    : "logs"
+    SESSION }o--|| STUDENT     : "belongs to"
+    SESSION }o--|| STAFF       : "belongs to"
+
+
+%% ============================================================
+%%  DIAGRAM 6 : UI Navigation Map (flowchart LR)
+%%  Paste this block into https://mermaid.live to render
+%% ============================================================
+
+flowchart LR
+    classDef entryStyle   fill:#6C63FF,stroke:#4844AA,color:#fff
+    classDef adminStyle   fill:#BE123C,stroke:#9B1030,color:#fff
+    classDef staffStyle   fill:#0369A1,stroke:#025585,color:#fff
+    classDef studentStyle fill:#065F46,stroke:#044D38,color:#fff
+    classDef sharedStyle  fill:#1E293B,stroke:#64748B,color:#CBD5E1
+
+    LOGIN_NODE["login.html"]:::entryStyle
+
+    LOGIN_NODE -->|Admin|   A_DASH["Admin Dashboard"]:::adminStyle
+    LOGIN_NODE -->|Staff|   S_DASH["Staff Dashboard"]:::staffStyle
+    LOGIN_NODE -->|Student| ST_DASH["Student Dashboard"]:::studentStyle
+
+    A_DASH --> A1["analytics.html"]:::adminStyle
+    A_DASH --> A2["staff.html"]:::adminStyle
+    A_DASH --> A3["students.html"]:::adminStyle
+    A_DASH --> A4["reports.html"]:::adminStyle
+    A_DASH --> A5["settings.html"]:::adminStyle
+
+    S_DASH --> S1["attendance.html"]:::staffStyle
+    S_DASH --> S2["marks.html"]:::staffStyle
+    S_DASH --> S3["activities.html"]:::staffStyle
+    S_DASH --> S4["students.html"]:::staffStyle
+    S_DASH --> S5["reports.html"]:::staffStyle
+
+    ST_DASH --> ST1["My Report Card"]:::studentStyle
+    ST_DASH --> ST2["My Attendance"]:::studentStyle
+    ST_DASH --> ST3["My Performance"]:::studentStyle
+
+    A1 & A2 & A3 & A4 & A5 --> LS_NODE[("LocalStorage")]:::sharedStyle
+    S1 & S2 & S3 & S4 & S5 --> LS_NODE
+    ST1 & ST2 & ST3         --> LS_NODE
